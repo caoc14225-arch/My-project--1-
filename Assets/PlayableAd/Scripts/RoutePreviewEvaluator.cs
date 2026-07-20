@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -13,7 +13,7 @@ namespace PlayableAd
         [InspectorName("Type（类型）")] public RoutePreviewStepType type;
         [Range(1, PlayerSpeedSettings.RequiredLevelCount), InspectorName("Required Level（要求等级）")] public int requiredLevel;
         [Min(0f), InspectorName("Boost Amount（增益数值）")] public float boostAmount;
-        [Min(0f), InspectorName("Soft Cap（软上限）")] public float softCap;
+        [HideInInspector] public float softCap;
 
         public static RoutePreviewStep Obstacle(int requiredLevel, float boostAmount, float softCap)
         {
@@ -106,7 +106,6 @@ namespace PlayableAd
             int loss = 0;
             int special = 0;
             bool forcedLoss = false;
-            bool crossedNormalSoftCap = false;
 
             if (steps != null)
             {
@@ -120,8 +119,8 @@ namespace PlayableAd
                         if (outcome == CollisionOutcome.SpeedGain)
                         {
                             gain++;
-                            float cap = Mathf.Clamp(step.softCap, speedSettings.minimumSpeed, speedSettings.maximumSpeed);
-                            previewSpeed = Mathf.Min(previewSpeed + Mathf.Max(0f, step.boostAmount), cap);
+                            previewSpeed = Mathf.Min(previewSpeed + Mathf.Max(0f, step.boostAmount),
+                                speedSettings.maximumSpeed);
                         }
                         else if (outcome == CollisionOutcome.SpeedLoss)
                         {
@@ -135,25 +134,20 @@ namespace PlayableAd
                     else if (step.type == RoutePreviewStepType.SetLevelReward)
                     {
                         special++;
-                        float old = previewSpeed;
                         previewSpeed = GetLevelStart(step.requiredLevel, speedSettings);
-                        crossedNormalSoftCap |= old <= speedSettings.normalImpactSoftCap && previewSpeed > speedSettings.normalImpactSoftCap;
                     }
                     else
                     {
                         special++;
-                        float old = previewSpeed;
                         previewSpeed = Mathf.Min(previewSpeed + Mathf.Max(0f, step.boostAmount),
-                            Mathf.Clamp(step.softCap, speedSettings.minimumSpeed, speedSettings.maximumSpeed));
-                        crossedNormalSoftCap |= old <= speedSettings.normalImpactSoftCap && previewSpeed > speedSettings.normalImpactSoftCap;
+                            speedSettings.maximumSpeed);
                     }
                 }
             }
 
             float delta = previewSpeed - startSpeed;
             RouteState state;
-            if (special > 0 && delta > previewSettings.gainThreshold &&
-                (crossedNormalSoftCap || previewSpeed > startSpeed))
+            if (special > 0 && delta > previewSettings.gainThreshold)
                 state = RouteState.SpecialBoost;
             else if (delta < -previewSettings.heavyRiskThreshold || loss > 1)
                 state = RouteState.HeavyRisk;

@@ -142,7 +142,7 @@ namespace PlayableAdEditor.Tests
         }
 
         [Test]
-        public void AddSpeedAtSoftCapStillPublishesFeedbackEvent()
+        public void AddSpeedIgnoresLegacySoftCapAndPublishesFeedbackEvent()
         {
             speed.SetSpeed(3.5f);
             int eventCount = 0;
@@ -155,14 +155,14 @@ namespace PlayableAdEditor.Tests
 
             speed.AddSpeed(0.2f, 3.5f);
 
-            Assert.That(speed.CurrentSpeed, Is.EqualTo(3.5f));
+            Assert.That(speed.CurrentSpeed, Is.EqualTo(3.7f));
             Assert.That(eventCount, Is.EqualTo(1));
-            Assert.That(last.OldValue, Is.EqualTo(last.NewValue));
+            Assert.That(last.NewValue, Is.GreaterThan(last.OldValue));
             Assert.That(last.Reason, Is.EqualTo(SpeedChangeReason.NormalImpact));
         }
 
         [Test]
-        public void NormalBoostAboveSoftCapNeverReducesSpecialRewardSpeed()
+        public void NormalBoostAtMaximumNeverExceedsGlobalMaximum()
         {
             speed.SetSpeed(10f, SpeedChangeReason.SpecialReward);
             int eventCount = 0;
@@ -198,21 +198,21 @@ namespace PlayableAdEditor.Tests
         }
 
         [Test]
-        public void LevelOneSoldierBoostStopsAtConfiguredSixPointFiveSoftCap()
+        public void LevelOneSoldierBoostCanRisePastLegacySoftCap()
         {
             speed.SetSpeed(6.45f);
 
             speed.AddSpeed(settings.levelOneSoldierBoost, settings.normalImpactSoftCap);
-            float capped = speed.CurrentSpeed;
+            float firstBoost = speed.CurrentSpeed;
             speed.AddSpeed(settings.levelOneSoldierBoost, settings.normalImpactSoftCap);
 
             Assert.That(settings.levelOneSoldierBoost, Is.EqualTo(0.12f).Within(0.0001f));
-            Assert.That(capped, Is.EqualTo(6.5f).Within(0.0001f));
-            Assert.That(speed.CurrentSpeed, Is.EqualTo(6.5f).Within(0.0001f));
+            Assert.That(firstBoost, Is.EqualTo(6.57f).Within(0.0001f));
+            Assert.That(speed.CurrentSpeed, Is.EqualTo(6.69f).Within(0.0001f));
         }
 
         [Test]
-        public void LevelFourPotionSpeedCanGainFromLevelOneSoldierUsingNormalSoftCap()
+        public void LevelFourPotionSpeedCanGainFromLevelOneSoldier()
         {
             speed.SetLevel(4, SpeedChangeReason.PotionPickup);
             float before = speed.CurrentSpeed;
@@ -220,7 +220,7 @@ namespace PlayableAdEditor.Tests
             speed.AddSpeed(settings.levelOneSoldierBoost, settings.normalImpactSoftCap,
                 SpeedChangeReason.LowLevelCollisionReward, root);
 
-            Assert.That(before, Is.LessThan(settings.normalImpactSoftCap));
+            Assert.That(before, Is.LessThan(settings.maximumSpeed));
             Assert.That(speed.CurrentSpeed, Is.EqualTo(before + 0.12f).Within(0.0001f));
             Assert.That(speed.GetCurrentLevel(), Is.EqualTo(4));
         }
@@ -285,7 +285,7 @@ namespace PlayableAdEditor.Tests
         }
 
         [Test]
-        public void EqualLevelWallDoesNotChangeSpeed()
+        public void EqualLevelWallCanIncreaseSpeed()
         {
             BoxCollider collider = root.AddComponent<BoxCollider>();
             ObstacleController obstacle = root.AddComponent<ObstacleController>();
@@ -294,8 +294,8 @@ namespace PlayableAdEditor.Tests
 
             ObstacleResolutionType resolution = obstacle.Resolve(speed, 0.2f, 3.5f);
 
-            Assert.That(resolution, Is.EqualTo(ObstacleResolutionType.Equal));
-            Assert.That(speed.CurrentSpeed, Is.EqualTo(3f));
+            Assert.That(resolution, Is.EqualTo(ObstacleResolutionType.Boosted));
+            Assert.That(speed.CurrentSpeed, Is.EqualTo(3.2f).Within(0.0001f));
             Assert.That(collider.enabled, Is.False);
         }
 
@@ -435,7 +435,7 @@ namespace PlayableAdEditor.Tests
         }
 
         [TestCase(4, 1, CollisionOutcome.SpeedGain)]
-        [TestCase(4, 4, CollisionOutcome.Neutral)]
+        [TestCase(4, 4, CollisionOutcome.SpeedGain)]
         [TestCase(4, 5, CollisionOutcome.SpeedLoss)]
         public void CollisionOutcomeUsesOneThreeStateBoundary(int playerLevel, int requiredLevel, CollisionOutcome expected)
         {
@@ -535,7 +535,7 @@ namespace PlayableAdEditor.Tests
         }
 
         [Test]
-        public void RoutePreviewSimulatesOrderedGainAndSoftCapWithoutMutatingPlayer()
+        public void RoutePreviewSimulatesOrderedGainWithoutLegacySoftCap()
         {
             var steps = new System.Collections.Generic.List<RoutePreviewStep>();
             for (int i = 0; i < 30; i++)
@@ -545,20 +545,20 @@ namespace PlayableAdEditor.Tests
             RouteEvaluation result = RoutePreviewEvaluator.Evaluate(4f, steps, settings, new RoutePreviewSettings());
 
             Assert.That(result.State, Is.EqualTo(RouteState.StrongGain));
-            Assert.That(result.ExpectedEndSpeed, Is.EqualTo(settings.normalImpactSoftCap).Within(0.0001f));
+            Assert.That(result.ExpectedEndSpeed, Is.EqualTo(7.6f).Within(0.0001f));
             Assert.That(result.GainTargetCount, Is.EqualTo(30));
             Assert.That(speed.CurrentSpeed, Is.EqualTo(realSpeed));
         }
 
         [Test]
-        public void RoutePreviewDistinguishesNeutralRiskAndSpecialBoost()
+        public void RoutePreviewDistinguishesGainRiskAndSpecialBoost()
         {
             RoutePreviewSettings preview = new RoutePreviewSettings();
-            var neutral = new[] { RoutePreviewStep.Obstacle(4, settings.normalImpactBoost, settings.normalImpactSoftCap) };
+            var gain = new[] { RoutePreviewStep.Obstacle(4, settings.normalImpactBoost, settings.normalImpactSoftCap) };
             var risk = new[] { RoutePreviewStep.Obstacle(5, settings.normalImpactBoost, settings.normalImpactSoftCap) };
             var special = new[] { RoutePreviewStep.SetLevelReward(7) };
 
-            Assert.That(RoutePreviewEvaluator.Evaluate(4f, neutral, settings, preview).State, Is.EqualTo(RouteState.Neutral));
+            Assert.That(RoutePreviewEvaluator.Evaluate(4f, gain, settings, preview).State, Is.EqualTo(RouteState.Gain));
             Assert.That(RoutePreviewEvaluator.Evaluate(4f, risk, settings, preview).State, Is.EqualTo(RouteState.HeavyRisk));
             Assert.That(RoutePreviewEvaluator.Evaluate(4f, special, settings, preview).State, Is.EqualTo(RouteState.SpecialBoost));
         }

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace PlayableAd
@@ -73,9 +73,7 @@ namespace PlayableAd
 
         public static CollisionOutcome EvaluateCollisionOutcome(int playerLevel, int requiredLevel)
         {
-            if (playerLevel > requiredLevel) return CollisionOutcome.SpeedGain;
-            if (playerLevel < requiredLevel) return CollisionOutcome.SpeedLoss;
-            return CollisionOutcome.Neutral;
+            return playerLevel >= requiredLevel ? CollisionOutcome.SpeedGain : CollisionOutcome.SpeedLoss;
         }
 
         public void Initialize(int requiredLevel, ObstacleType type, GameObject intact, GameObject destroyed,

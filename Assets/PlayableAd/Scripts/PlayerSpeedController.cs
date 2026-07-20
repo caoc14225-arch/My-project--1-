@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace PlayableAd
@@ -42,14 +42,13 @@ namespace PlayableAd
         [Header("P0 Rules（P0 规则）")]
         [Range(1, RequiredLevelCount), InspectorName("Starting Level（起始等级）")] public int startingLevel = 1;
         [Range(1, RequiredLevelCount), InspectorName("Tutorial Elixir Target Level（教学药剂目标等级）")] public int tutorialElixirTargetLevel = 4;
-        [Tooltip("Legacy compatibility only. Current course keeps this disabled so speed changes only through gameplay events.")]
-        [InspectorName("Automatic Speed Decay Enabled（启用自动速度衰减）")] public bool automaticSpeedDecayEnabled = false;
-        [Min(0f), InspectorName("Main Run Decay Per Second（主流程每秒衰减）")] public float mainRunDecayPerSecond = 0.1f;
+        [HideInInspector] public bool automaticSpeedDecayEnabled = false;
+        [HideInInspector] public float mainRunDecayPerSecond = 0.1f;
         [InspectorName("Log Speed Changes（记录速度变化）")] public bool logSpeedChanges = false;
         [Min(0f), InspectorName("Level One Soldier Boost（一级士兵增益）")] public float levelOneSoldierBoost = 0.12f;
         [Min(0f), InspectorName("Normal Impact Boost（普通冲击增益）")] public float normalImpactBoost = 0.18f;
-        [Min(0f), InspectorName("Normal Impact Soft Cap（普通冲击软上限）")] public float normalImpactSoftCap = 6.5f;
-        [Min(0f), InspectorName("Tutorial Impact Soft Cap（教学冲击软上限）")] public float tutorialImpactSoftCap = 4f;
+        [HideInInspector] public float normalImpactSoftCap = 10f;
+        [HideInInspector] public float tutorialImpactSoftCap = 10f;
         [Range(1, RequiredLevelCount), InspectorName("Boss Victory Level（Boss 胜利等级）")] public int bossVictoryLevel = 10;
 
         public int LevelCount => levelStartSpeeds != null ? levelStartSpeeds.Length : RequiredLevelCount;
@@ -184,10 +183,9 @@ namespace PlayableAd
 
         public void AddSpeed(float amount, float softCap, SpeedChangeReason reason, UnityEngine.Object source)
         {
-            float cap = Mathf.Clamp(softCap, settings.minimumSpeed, settings.maximumSpeed);
-            float target = currentSpeed >= cap
-                ? currentSpeed
-                : Mathf.Min(currentSpeed + Mathf.Max(0f, amount), cap);
+            // softCap is retained in the signature for serialized and API compatibility.
+            // Positive speed changes now use only the authoritative global maximum.
+            float target = Mathf.Min(currentSpeed + Mathf.Max(0f, amount), settings.maximumSpeed);
             SetSpeedInternal(target, reason, source, true);
         }
 
@@ -251,7 +249,17 @@ namespace PlayableAd
         public void ApplyMainRunDecay(float deltaTime)
         {
             if (!AutomaticSpeedDecayEnabled || deltaTime <= 0f || settings.mainRunDecayPerSecond <= 0f) return;
-            SetSpeed(currentSpeed - settings.mainRunDecayPerSecond * deltaTime, SpeedChangeReason.MainRunDecay, this);
+            ApplyContinuousSpeedLoss(deltaTime, settings.mainRunDecayPerSecond, settings.minimumSpeed, this);
+        }
+
+        public void ApplyContinuousSpeedLoss(float deltaTime, float lossPerSecond, float minimumRetainedSpeed,
+            UnityEngine.Object source)
+        {
+            if (deltaTime <= 0f || lossPerSecond <= 0f) return;
+            float floor = Mathf.Clamp(minimumRetainedSpeed, settings.minimumSpeed, settings.maximumSpeed);
+            if (currentSpeed <= floor) return;
+            float target = Mathf.Max(floor, currentSpeed - lossPerSecond * deltaTime);
+            SetSpeed(target, SpeedChangeReason.MainRunDecay, source != null ? source : this);
         }
 
         private int GetLevelForSpeed(float value)

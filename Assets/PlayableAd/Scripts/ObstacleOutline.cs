@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections;
 using UnityEngine;
 
@@ -17,7 +17,6 @@ namespace PlayableAd
         [Range(0f, 0.4f), InspectorName("Danger Pulse Amount（危险脉冲幅度）")] public float dangerPulseAmount = 0.18f;
         [Range(0.2f, 1f), InspectorName("Max Scene Brightness（场景最大亮度）")] public float maxSceneBrightness = 0.82f;
         [InspectorName("Enhanced Outcome Cues（增强结果提示）")] public bool enhancedOutcomeCues;
-        [Range(0.25f, 0.8f), InspectorName("Symbol Scale（符号缩放）")] public float symbolScale = 0.48f;
         [InspectorName("Outline Material（轮廓材质）")] public Material outlineMaterial;
     }
 
@@ -37,8 +36,6 @@ namespace PlayableAd
         private ObstacleController obstacle;
         private Renderer[] outlineRenderers = Array.Empty<Renderer>();
         private MaterialPropertyBlock propertyBlock;
-        private MaterialPropertyBlock symbolPropertyBlock;
-        private LineRenderer outcomeSymbol;
         private LineRenderer statusRing;
         private Coroutine transitionRoutine;
         private int lastPlayerLevel = -1;
@@ -55,7 +52,6 @@ namespace PlayableAd
             speedController = controller;
             obstacle = targetObstacle;
             propertyBlock = new MaterialPropertyBlock();
-            symbolPropertyBlock = new MaterialPropertyBlock();
 
             Material material = settings.outlineMaterial;
             if (material == null)
@@ -94,8 +90,6 @@ namespace PlayableAd
                 meshRenderer.receiveShadows = false;
                 outlineRenderers = new Renderer[] { meshRenderer };
             }
-            BuildOutcomeSymbol(material);
-            if (statusRing != null && outcomeSymbol != null) outcomeSymbol.enabled = false;
             SetPreviewActive(gameObject.activeInHierarchy);
         }
 
@@ -179,7 +173,6 @@ namespace PlayableAd
             previewStrength = Mathf.Clamp01(strength);
             SetOutlineRenderersEnabled(visible && settings.enabled);
             if (statusRing != null) statusRing.enabled = visible && settings.enabled && previewStrength >= 0.35f;
-            if (outcomeSymbol != null) outcomeSymbol.enabled = visible && settings.enabled && previewStrength >= 0.72f;
             if (visible && !subscribed)
             {
                 speedController.SpeedChanged += OnSpeedChanged;
@@ -214,7 +207,6 @@ namespace PlayableAd
                 transitionRoutine = StartCoroutine(TransitionVisual(color));
             else
                 ApplyVisual(color);
-            ConfigureSymbol(CurrentOutcome, color);
             ConfigureStatusRing(color);
         }
 
@@ -266,60 +258,6 @@ namespace PlayableAd
             return settings.neutralColor;
         }
 
-        private void BuildOutcomeSymbol(Material material)
-        {
-            GameObject symbol = new GameObject("OutcomeSymbol_NoNumbers");
-            symbol.transform.SetParent(transform, false);
-            symbol.transform.localPosition = new Vector3(0f, 1.12f, -0.48f);
-            symbol.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            outcomeSymbol = symbol.AddComponent<LineRenderer>();
-            outcomeSymbol.useWorldSpace = false;
-            outcomeSymbol.loop = false;
-            outcomeSymbol.sharedMaterial = material;
-            outcomeSymbol.numCapVertices = 2;
-            outcomeSymbol.numCornerVertices = 2;
-            outcomeSymbol.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            outcomeSymbol.receiveShadows = false;
-        }
-
-        private void ConfigureSymbol(CollisionOutcome outcome, Color color)
-        {
-            if (outcomeSymbol == null) return;
-            if (statusRing != null)
-            {
-                outcomeSymbol.enabled = false;
-                return;
-            }
-            float scale = settings.symbolScale * (settings.enhancedOutcomeCues ? 1.25f : 1f);
-            outcomeSymbol.startWidth = settings.baseWidth * 1.6f;
-            outcomeSymbol.endWidth = outcomeSymbol.startWidth;
-            outcomeSymbol.startColor = color;
-            outcomeSymbol.endColor = color;
-            outcomeSymbol.enabled = settings.enabled && previewStrength >= 0.72f && !obstacle.HasResolved;
-            outcomeSymbol.GetPropertyBlock(symbolPropertyBlock);
-            symbolPropertyBlock.SetColor(ColorId, color);
-            symbolPropertyBlock.SetFloat(WidthId, 0f);
-            symbolPropertyBlock.SetFloat(DangerId, outcome == CollisionOutcome.SpeedLoss ? 1f : 0f);
-            symbolPropertyBlock.SetFloat(PulseSpeedId, settings.dangerPulseSpeed);
-            symbolPropertyBlock.SetFloat(PulseAmountId, outcome == CollisionOutcome.SpeedLoss ? settings.dangerPulseAmount : 0f);
-            symbolPropertyBlock.SetFloat(FlowDirectionId, outcome == CollisionOutcome.SpeedGain ? 1f : outcome == CollisionOutcome.SpeedLoss ? -1f : 0f);
-            outcomeSymbol.SetPropertyBlock(symbolPropertyBlock);
-            if (outcome == CollisionOutcome.Neutral)
-            {
-                outcomeSymbol.positionCount = 2;
-                outcomeSymbol.SetPosition(0, new Vector3(-scale, 0f, 0f));
-                outcomeSymbol.SetPosition(1, new Vector3(scale, 0f, 0f));
-                return;
-            }
-            float direction = outcome == CollisionOutcome.SpeedGain ? 1f : -1f;
-            outcomeSymbol.positionCount = 5;
-            outcomeSymbol.SetPosition(0, new Vector3(0f, -scale * direction, 0f));
-            outcomeSymbol.SetPosition(1, new Vector3(0f, scale * direction, 0f));
-            outcomeSymbol.SetPosition(2, new Vector3(-scale * 0.48f, scale * 0.45f * direction, 0f));
-            outcomeSymbol.SetPosition(3, new Vector3(0f, scale * direction, 0f));
-            outcomeSymbol.SetPosition(4, new Vector3(scale * 0.48f, scale * 0.45f * direction, 0f));
-        }
-
         private void ConfigureStatusRing(Color color)
         {
             if (statusRing == null) return;
@@ -333,7 +271,6 @@ namespace PlayableAd
         {
             SetOutlineRenderersEnabled(false);
             if (statusRing != null) statusRing.enabled = false;
-            if (outcomeSymbol != null) outcomeSymbol.enabled = false;
             Unsubscribe();
         }
 
