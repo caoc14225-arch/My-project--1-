@@ -244,61 +244,193 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tuning:
-    targetDuration: 90
-    tutorialDuration: 7
-    openingElixirTime: 2
+    targetDuration: 56
+    tutorialDuration: 4
+    openingElixirTime: 1.230769
     tutorialSoldierCount: 5
-    tutorialSoldierSpacing: 3
-    tutorialFirstSoldierGap: 4
-    tutorialWallGap: 10
-    bossDistance: 1300
-    choiceRowSpacing: 22
-    firstChoiceOffsetFromTutorial: 42
-    maintenanceRewardSpacing: 220
+    tutorialSoldierSpacing: 1.846154
+    tutorialFirstSoldierGap: 2.461538
+    tutorialWallGap: 6.153846
+    forwardSpeedLossEnabled: 1
+    forwardSpeedLossPerSecond: 0.158
+    minimumSpeedAfterLoss: 1
+    bossSpeedProtectionDistance: 150
+    bossDistance: 800
+    maintenanceRewardSpacing: 135.3846
     maintenanceRewardLevel: 4
-    specialRewardSpacing: 270
-    bossApproachPadding: 35
+    specialRewardSpacing: 166.1538
+    bossApproachPadding: 21.53846
     proceduralSeed: 41723
-    rewardLaneOffset: 2.15
-    choiceTierPool: 0100000003000000040000000500000006000000070000000800000009000000
     specialRewardLevels: 0700000008000000090000000a000000
     soldierSections:
-    - sectionName: MomentumBuild
-      startOffsetFromTutorial: 12
-      soldierCount: 10
-      pattern: 0
-      expectedEntryLevel: 4
-      targetHitInterval: 0.25
-      minimumForwardSpacing: 0.9
-      lateralSpread: 0.55
-      climax: 0
-    - sectionName: SplitColumns
-      startOffsetFromTutorial: 320
-      soldierCount: 12
-      pattern: 1
-      expectedEntryLevel: 4
-      targetHitInterval: 0.25
-      minimumForwardSpacing: 0.9
-      lateralSpread: 1.05
-      climax: 0
-    - sectionName: ImpactClimax
-      startOffsetFromTutorial: 700
-      soldierCount: 15
-      pattern: 2
-      expectedEntryLevel: 4
-      targetHitInterval: 0.25
-      minimumForwardSpacing: 0.9
-      lateralSpread: 1.45
-      climax: 0
-    - sectionName: BossSprint
-      startOffsetFromTutorial: 1120
-      soldierCount: 12
-      pattern: 3
-      expectedEntryLevel: 4
-      targetHitInterval: 0.25
-      minimumForwardSpacing: 0.9
-      lateralSpread: 1.8
-      climax: 0
+    - sectionName: 1
+      startOffsetFromTutorial: 20.89
+      soldierCount: 6
+      placementMode: 1
+      minimumForwardSpacing: 1.002
+      horizontalCoverage: 1
+      forwardRandomness: 0.9
+    - sectionName: 2
+      startOffsetFromTutorial: 48.37
+      soldierCount: 6
+      placementMode: 3
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 3
+      startOffsetFromTutorial: 63.48
+      soldierCount: 6
+      placementMode: 2
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 4
+      startOffsetFromTutorial: 93.08
+      soldierCount: 6
+      placementMode: 2
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 5
+      startOffsetFromTutorial: 124.18
+      soldierCount: 6
+      placementMode: 1
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 6
+      startOffsetFromTutorial: 167.75
+      soldierCount: 6
+      placementMode: 2
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 7
+      startOffsetFromTutorial: 210.68
+      soldierCount: 6
+      placementMode: 3
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 8
+      startOffsetFromTutorial: 242.19
+      soldierCount: 6
+      placementMode: 1
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 9
+      startOffsetFromTutorial: 285.97
+      soldierCount: 6
+      placementMode: 1
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 10
+      startOffsetFromTutorial: 294.41
+      soldierCount: 6
+      placementMode: 3
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 11
+      startOffsetFromTutorial: 312
+      soldierCount: 6
+      placementMode: 1
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 12
+      startOffsetFromTutorial: 341.89
+      soldierCount: 6
+      placementMode: 2
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 13
+      startOffsetFromTutorial: 383.95
+      soldierCount: 6
+      placementMode: 3
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 14
+      startOffsetFromTutorial: 405.94
+      soldierCount: 6
+      placementMode: 3
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 15
+      startOffsetFromTutorial: 453.67
+      soldierCount: 6
+      placementMode: 1
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 16
+      startOffsetFromTutorial: 478.69
+      soldierCount: 6
+      placementMode: 2
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 17
+      startOffsetFromTutorial: 524.51
+      soldierCount: 6
+      placementMode: 3
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 18
+      startOffsetFromTutorial: 556.7
+      soldierCount: 6
+      placementMode: 3
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 19
+      startOffsetFromTutorial: 600.73
+      soldierCount: 6
+      placementMode: 2
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 20
+      startOffsetFromTutorial: 621.53
+      soldierCount: 6
+      placementMode: 2
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 21
+      startOffsetFromTutorial: 646.8
+      soldierCount: 6
+      placementMode: 1
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 22
+      startOffsetFromTutorial: 665.79
+      soldierCount: 6
+      placementMode: 3
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 23
+      startOffsetFromTutorial: 721.46
+      soldierCount: 6
+      placementMode: 2
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
+    - sectionName: 24
+      startOffsetFromTutorial: 727.46
+      soldierCount: 6
+      placementMode: 1
+      minimumForwardSpacing: 0.8
+      horizontalCoverage: 1
+      forwardRandomness: 0.8
     maxActiveEnemies: 48
     spawnAheadDistance: 90
     recycleDistance: 18
@@ -319,9 +451,8 @@ MonoBehaviour:
     fallbackBoostMagnetDistance: 7
     fallbackBoostMagnetSpeed: 12
     laneHalfWidth: 3.2
-    lateralSensitivity: 0.012
+    dragFollowRatio: 1
     lateralSpeed: 9
-    normalizedDragRange: 6.4
     dragDeadZone: 0.005
     invertDragInput: 0
     blockInputOverUi: 1
@@ -370,8 +501,8 @@ MonoBehaviour:
     logSpeedChanges: 0
     levelOneSoldierBoost: 0.12
     normalImpactBoost: 0.18
-    normalImpactSoftCap: 6.5
-    tutorialImpactSoftCap: 4
+    normalImpactSoftCap: 10
+    tutorialImpactSoftCap: 10
     bossVictoryLevel: 10
   autoBeginGameplay: 1
   environment:
@@ -384,7 +515,7 @@ MonoBehaviour:
     cameraFollowSharpness: 10
     highSpeedPullback: 0.8
     highSpeedLookAheadBonus: 1.2
-    environmentReferenceSpacing: 12
+    environmentReferenceSpacing: 7.384615
     roadBoundaryThickness: 0.35
     roadBoundaryHeight: 5.5
     skyFogColor: {r: 0.24, g: 0.32, b: 0.39, a: 1}
@@ -405,8 +536,8 @@ MonoBehaviour:
     referenceAspectRatio: 0.5625
     fieldOfView: 52
     cameraHeight: 5
-    cameraBackDistance: 5
-    cameraLookAhead: 6.3
+    cameraBackDistance: 9.95
+    cameraLookAhead: 18
     maxSpeedFovBonus: 4
     playerViewportPosition: 0.24
     vanishingPointViewportPosition: 0.72
@@ -470,8 +601,8 @@ MonoBehaviour:
     energyReturnDuration: 0.38
     scatterRadius: 0.62
   enemyBreakPresentation:
-    maxActiveFragments: 48
-    fragmentsPerEnemy: 4
+    maxActiveFragments: 56
+    fragmentsPerEnemy: 5
     fragmentLifetime: 1.35
     minFragmentForce: 4.5
     maxFragmentForce: 10.5
@@ -504,27 +635,7 @@ MonoBehaviour:
     dangerPulseAmount: 0.16
     maxSceneBrightness: 0.78
     enhancedOutcomeCues: 0
-    symbolScale: 0.48
     outlineMaterial: {fileID: 2100000, guid: 625156dea1b9dbd4f8afd10d0ae8904a, type: 2}
-  routePreviewPresentation:
-    gainThreshold: 0.15
-    heavyRiskThreshold: 0.9
-    recommendMinScoreDifference: 0.22
-    previewTime: 1.6
-    fadeInDuration: 0.2
-    fadeOutDuration: 0.22
-    minimumPreviewDistance: 10
-    maximumPreviewDistance: 52
-    ribbonLength: 7.5
-    specialColor: {r: 1, g: 0.68, b: 0.08, a: 0.88}
-    gainColor: {r: 0.04, g: 1, b: 0.48, a: 0.84}
-    neutralColor: {r: 0.68, g: 0.86, b: 1, a: 0.68}
-    riskColor: {r: 0.46, g: 0.018, b: 0.025, a: 0.76}
-    ribbonWidth: 0.12
-    normalRibbonAlpha: 0.22
-    recommendedRibbonAlpha: 0.34
-    entryIconAlpha: 0.58
-    iconScale: 0.34
   speedLevelFeedbackConfig: {fileID: 11400000, guid: abb605bf325454240a997ba6ac79f5f8, type: 2}
   bossClashPresentation:
     approachDuration: 0.5

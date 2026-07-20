@@ -8,28 +8,28 @@ namespace PlayableAd
 {
     public sealed class PlayableAdGame : MonoBehaviour
     {
-        public enum SoldierFormationPattern
+        public enum SoldierPlacementMode
         {
-            StaggeredLine,
-            DoubleColumn,
-            CompactGrid,
-            CenterFunnel,
-            Wedge,
-            Arc
+            [InspectorName("Free Random Dense（自由随机密集）")]
+            RandomDense,
+            [InspectorName("Left Lane Line（左路线直线队列）")]
+            LeftLaneLine,
+            [InspectorName("Center Lane Line（中路线直线队列）")]
+            CenterLaneLine,
+            [InspectorName("Right Lane Line（右路线直线队列）")]
+            RightLaneLine
         }
 
         [Serializable]
         public sealed class SoldierFormationSettings
         {
             [InspectorName("Section Name（区段名称）")] public string sectionName = "Momentum";
-            [Min(0f), InspectorName("Start Offset From Tutorial（距教学起始偏移）")] public float startOffsetFromTutorial = 12f;
-            [Range(6, 20), InspectorName("Soldier Count（士兵数量）")] public int soldierCount = 10;
-            [InspectorName("Pattern（编队模式）")] public SoldierFormationPattern pattern = SoldierFormationPattern.StaggeredLine;
-            [Range(1, 10), InspectorName("Expected Entry Level（预期进入等级）")] public int expectedEntryLevel = 4;
-            [Range(0.12f, 0.35f), InspectorName("Target Hit Interval（目标命中间隔）")] public float targetHitInterval = 0.25f;
-            [Range(0.7f, 2f), InspectorName("Minimum Forward Spacing（最小前向间距）")] public float minimumForwardSpacing = 0.9f;
-            [Range(0f, 2.4f), InspectorName("Lateral Spread（横向散布）")] public float lateralSpread = 0.65f;
-            [InspectorName("Climax（高潮段）")] public bool climax;
+            [Min(0f), InspectorName("Start Offset From Tutorial（距教学起始偏移）")] public float startOffsetFromTutorial = 7.38f;
+            [Range(6, 50), InspectorName("Density Rows（密度行数）")] public int soldierCount = 10;
+            [InspectorName("Placement Mode（摆放模式）")] public SoldierPlacementMode placementMode = SoldierPlacementMode.RandomDense;
+            [Range(0.65f, 1.2f), InspectorName("Forward Spacing（前后间距）")] public float minimumForwardSpacing = 0.8f;
+            [Range(0.4f, 1f), InspectorName("Horizontal Coverage（横向覆盖范围）")] public float horizontalCoverage = 1f;
+            [Range(0f, 0.9f), InspectorName("Forward Randomness（前后随机度）")] public float forwardRandomness = 0.8f;
         }
 
         [Serializable]
@@ -37,39 +37,41 @@ namespace PlayableAd
         {
             [Header("Experience（体验时长）")]
             [Tooltip("Approximate duration target for the complete playable loop, including the Boss climax.")]
-            [Min(30f), InspectorName("Target Duration（目标总时长）")] public float targetDuration = 60f;
-            [Min(1f), InspectorName("Tutorial Duration（教学时长）")] public float tutorialDuration = 7f;
+            [Min(30f), InspectorName("Target Duration（目标总时长）")] public float targetDuration = 36.92f;
+            [Min(1f), InspectorName("Tutorial Duration（教学时长）")] public float tutorialDuration = 4.31f;
             [Header("Opening Tutorial（开场教学）")]
-            [Range(1f, 2f), InspectorName("Opening Elixir Time（开场药剂时间）")] public float openingElixirTime = 2f;
+            [Range(1f, 2f), InspectorName("Opening Elixir Time（开场药剂时间）")] public float openingElixirTime = 1.23f;
             [Range(3, 5), InspectorName("Tutorial Soldier Count（教学士兵数量）")] public int tutorialSoldierCount = 5;
-            [Range(2f, 3.2f), InspectorName("Tutorial Soldier Spacing（教学士兵间距）")] public float tutorialSoldierSpacing = 3f;
-            [Range(2f, 5f), InspectorName("Tutorial First Soldier Gap（首个教学士兵间隔）")] public float tutorialFirstSoldierGap = 4f;
-            [Range(3f, 12f), InspectorName("Tutorial Wall Gap（教学墙体间隔）")] public float tutorialWallGap = 10f;
+            [Range(1.2f, 3.2f), InspectorName("Tutorial Soldier Spacing（教学士兵间距）")] public float tutorialSoldierSpacing = 1.85f;
+            [Range(1.5f, 5f), InspectorName("Tutorial First Soldier Gap（首个教学士兵间隔）")] public float tutorialFirstSoldierGap = 2.46f;
+            [Range(3f, 12f), InspectorName("Tutorial Wall Gap（教学墙体间隔）")] public float tutorialWallGap = 6.15f;
+
+            [Header("Forward Speed Loss（前进速度损失）")]
+            [InspectorName("Speed Loss Enabled（启用速度损失）")] public bool forwardSpeedLossEnabled = true;
+            [Range(0f, 0.5f), InspectorName("Speed Loss Per Second（每秒速度损失）")] public float forwardSpeedLossPerSecond = 0.08f;
+            [Range(1f, 10f), InspectorName("Minimum Speed After Loss（损失后最低速度）")] public float minimumSpeedAfterLoss = 1f;
+            [Range(0f, 300f), InspectorName("Boss Speed Protection Distance（Boss 前停止掉速距离）")] public float bossSpeedProtectionDistance = 150f;
 
             [Header("Course（路线）")]
-            [Tooltip("Course length tuned for roughly 80-95 seconds including the tutorial and Boss sequence.")]
-            [Min(20f), InspectorName("Boss Distance（Boss 距离）")] public float bossDistance = 1300f;
+            [Tooltip("Total world-space distance from the start to the Boss encounter.")]
+            [Min(20f), InspectorName("Boss Distance（Boss 距离）")] public float bossDistance = 800f;
             [Header("Data-driven Main Run（数据驱动主流程）")]
-            [Range(12f, 48f), InspectorName("Choice Row Spacing（选择行间距）")] public float choiceRowSpacing = 22f;
-            [Range(20f, 70f), InspectorName("First Choice Offset From Tutorial（首次选择距教学偏移）")] public float firstChoiceOffsetFromTutorial = 42f;
             [Tooltip("Safe-lane recovery spacing. Keeps the normal route out of the level-one dead zone without granting high-tier progression.")]
-            [Range(120f, 300f), InspectorName("Maintenance Reward Spacing（维护奖励间距）")] public float maintenanceRewardSpacing = 220f;
+            [Range(80f, 300f), InspectorName("Maintenance Reward Spacing（维护奖励间距）")] public float maintenanceRewardSpacing = 135.38f;
             [Range(3, 6), InspectorName("Maintenance Reward Level（维护奖励等级）")] public int maintenanceRewardLevel = 4;
-            [Range(60f, 300f), InspectorName("Special Reward Spacing（特殊奖励间距）")] public float specialRewardSpacing = 270f;
-            [Min(20f), InspectorName("Boss Approach Padding（Boss 接近缓冲）")] public float bossApproachPadding = 35f;
+            [Range(40f, 300f), InspectorName("Special Reward Spacing（特殊奖励间距）")] public float specialRewardSpacing = 166.15f;
+            [Min(10f), InspectorName("Boss Approach Padding（Boss 接近缓冲）")] public float bossApproachPadding = 21.54f;
             [InspectorName("Procedural Seed（程序化随机种子）")] public int proceduralSeed = 41723;
-            [Header("Controlled reward-lane formations（受控奖励路线编队）")]
-            [Range(1.6f, 2.6f), InspectorName("Reward Lane Offset（奖励路线偏移）")] public float rewardLaneOffset = 2.15f;
-            [InspectorName("Choice Tier Pool（选择等级池）")] public int[] choiceTierPool = { 1, 3, 4, 5, 6, 7, 8, 9 };
+            [Header("Randomized soldier formations（随机士兵编队）")]
             [InspectorName("Special Reward Levels（特殊奖励等级）")] public int[] specialRewardLevels = { 7, 8, 9, 10 };
             [InspectorName("Soldier Sections（士兵区段）")] public SoldierFormationSettings[] soldierSections =
             {
-                new SoldierFormationSettings { sectionName = "MomentumBuild", startOffsetFromTutorial = 12f, soldierCount = 8, pattern = SoldierFormationPattern.StaggeredLine, expectedEntryLevel = 4, targetHitInterval = 0.3f, lateralSpread = 0.42f },
-                new SoldierFormationSettings { sectionName = "FirstCombo", startOffsetFromTutorial = 170f, soldierCount = 10, pattern = SoldierFormationPattern.StaggeredLine, expectedEntryLevel = 4, targetHitInterval = 0.24f, lateralSpread = 0.58f },
-                new SoldierFormationSettings { sectionName = "TwinColumnClimax", startOffsetFromTutorial = 390f, soldierCount = 16, pattern = SoldierFormationPattern.DoubleColumn, expectedEntryLevel = 5, targetHitInterval = 0.18f, lateralSpread = 0.82f, climax = true },
-                new SoldierFormationSettings { sectionName = "WedgeBreakthrough", startOffsetFromTutorial = 620f, soldierCount = 10, pattern = SoldierFormationPattern.Wedge, expectedEntryLevel = 5, targetHitInterval = 0.22f, lateralSpread = 1.05f },
-                new SoldierFormationSettings { sectionName = "PhalanxClimax", startOffsetFromTutorial = 850f, soldierCount = 16, pattern = SoldierFormationPattern.CompactGrid, expectedEntryLevel = 6, targetHitInterval = 0.17f, lateralSpread = 1.1f, climax = true },
-                new SoldierFormationSettings { sectionName = "BossSprint", startOffsetFromTutorial = 1080f, soldierCount = 18, pattern = SoldierFormationPattern.CenterFunnel, expectedEntryLevel = 8, targetHitInterval = 0.14f, lateralSpread = 1.45f, climax = true }
+                new SoldierFormationSettings { sectionName = "MomentumBuild", startOffsetFromTutorial = 7.38f, soldierCount = 8 },
+                new SoldierFormationSettings { sectionName = "FirstCombo", startOffsetFromTutorial = 104.62f, soldierCount = 10 },
+                new SoldierFormationSettings { sectionName = "TwinColumnClimax", startOffsetFromTutorial = 240f, soldierCount = 16 },
+                new SoldierFormationSettings { sectionName = "WedgeBreakthrough", startOffsetFromTutorial = 381.54f, soldierCount = 10 },
+                new SoldierFormationSettings { sectionName = "PhalanxClimax", startOffsetFromTutorial = 523.08f, soldierCount = 16 },
+                new SoldierFormationSettings { sectionName = "BossSprint", startOffsetFromTutorial = 664.62f, soldierCount = 18 }
             };
             [Header("Mobile encounter budget（移动端遭遇预算）")]
             [Range(24, 64), InspectorName("Max Active Enemies（最大活动敌人数）")] public int maxActiveEnemies = 48;
@@ -94,10 +96,8 @@ namespace PlayableAd
             [Range(4f, 10f), InspectorName("Fallback Boost Magnet Distance（备用增益吸附距离）")] public float fallbackBoostMagnetDistance = 7f;
             [Range(6f, 20f), InspectorName("Fallback Boost Magnet Speed（备用增益吸附速度）")] public float fallbackBoostMagnetSpeed = 12f;
             [Min(1f), InspectorName("Lane Half Width（路线半宽）")] public float laneHalfWidth = 3.2f;
-            [Min(0.1f), InspectorName("Lateral Sensitivity（横向灵敏度）")] public float lateralSensitivity = 0.012f;
-            [Min(1f), InspectorName("Lateral Speed（横向速度）")] public float lateralSpeed = 9f;
-            [Tooltip("World-space lane travel produced by a full-screen horizontal drag.")]
-            [Range(2f, 12f), InspectorName("Normalized Drag Range（归一化拖拽范围）")] public float normalizedDragRange = 6.4f;
+            [Range(0.5f, 1.5f), InspectorName("Drag Follow Ratio（拖动跟随比例）")] public float dragFollowRatio = 1f;
+            [Min(1f), InspectorName("Keyboard Lateral Speed（键盘横移速度）")] public float lateralSpeed = 9f;
             [Range(0f, 0.05f), InspectorName("Drag Dead Zone（拖拽死区）")] public float dragDeadZone = 0.005f;
             [InspectorName("Invert Drag Input（反转拖拽输入）")] public bool invertDragInput;
             [InspectorName("Block Input Over UI（阻止界面区域输入）")] public bool blockInputOverUi = true;
@@ -127,7 +127,7 @@ namespace PlayableAd
             [Range(4f, 14f), InspectorName("Camera Follow Sharpness（镜头跟随锐度）")] public float cameraFollowSharpness = 9f;
             [Range(0f, 6f), InspectorName("High Speed Pullback（高速后拉）")] public float highSpeedPullback = 1f;
             [Range(0f, 10f), InspectorName("High Speed Look Ahead Bonus（高速前视加成）")] public float highSpeedLookAheadBonus = 1.5f;
-            [Range(8f, 16f), InspectorName("Environment Reference Spacing（环境参考间距）")] public float environmentReferenceSpacing = 12f;
+            [Range(5f, 16f), InspectorName("Environment Reference Spacing（环境参考间距）")] public float environmentReferenceSpacing = 7.38f;
 
             [Header("Road Collision Boundaries（道路碰撞边界）")]
             [Min(0.1f), InspectorName("Road Boundary Thickness（道路边界厚度）")] public float roadBoundaryThickness = 0.35f;
@@ -254,9 +254,6 @@ namespace PlayableAd
         [Header("Obstacle risk outline（障碍风险轮廓）")]
         [SerializeField, InspectorName("Outline Presentation（轮廓表现设置）")] private ObstacleOutlineSettings outlinePresentation = new ObstacleOutlineSettings();
 
-        [Header("Route-level outcome preview（路线结果预览）")]
-        [SerializeField, InspectorName("Route Preview Presentation（路线预览表现设置）")] private RoutePreviewSettings routePreviewPresentation = new RoutePreviewSettings();
-
         [Header("Authoritative level-up feedback（权威升级反馈）")]
         [SerializeField, InspectorName("Speed Level Feedback Config（速度等级反馈配置）")] private SpeedLevelFeedbackConfig speedLevelFeedbackConfig;
 
@@ -285,7 +282,6 @@ namespace PlayableAd
         [SerializeField, Min(20f), InspectorName("Debug Test Segment Length（调试测试区段长度）")] private float debugTestSegmentLength = 100f;
 
         private readonly List<Encounter> encounters = new List<Encounter>();
-        private readonly List<RouteChoiceZoneData> routeChoiceZones = new List<RouteChoiceZoneData>();
         private readonly HashSet<int> targetVisualFallbackWarnings = new HashSet<int>();
         private readonly List<Renderer> roadRenderers = new List<Renderer>();
         private Transform worldRoot;
@@ -303,8 +299,6 @@ namespace PlayableAd
         private SoldierBreakEffectPool soldierBreakPool;
         private BossClashVisual bossClashVisual;
         private SpeedBarView speedBarView;
-        private RouteChoicePreview routeChoicePreview;
-        private RouteChoiceZoneData activeRouteChoice;
         private SpeedLevelFeedbackController speedLevelFeedback;
         private VisualTimeScaleController visualTimeScale;
         private PlayerSpeedController speedController;
@@ -346,12 +340,6 @@ namespace PlayableAd
         private int comboPitchIndex;
         private int launchVariant;
         private bool lowSpeedWarningShown;
-        private bool gainPreviewTutorialShown;
-        private bool neutralPreviewTutorialShown;
-        private bool lossPreviewTutorialShown;
-        private bool routeTutorialShown;
-        private bool specialRouteTutorialShown;
-        private bool riskRouteTutorialShown;
         private bool gameplayStarted;
         private int lastUiTier = -1;
         private string speedReadout = "1/10";
@@ -371,6 +359,7 @@ namespace PlayableAd
         public float CurrentAnimationSpeed => runnerAnimator != null ? runnerAnimator.speed : 0f;
         private int CurrentTier => speedController != null ? speedController.GetCurrentLevel() : 1;
         private bool FormalStarted => flowController != null && flowController.CurrentState == RunFlowState.MainRun;
+        private float CourseDistanceScale => tuning != null ? Mathf.Max(0.1f, tuning.bossDistance / 1300f) : 1f;
         private float OpeningElixirZ => tuning.openingElixirTime * playerSpeed.forwardSpeeds[0];
 
         private void Awake()
@@ -455,7 +444,7 @@ namespace PlayableAd
             if (Input.GetKeyDown(KeyCode.B) && runner != null)
             {
                 speedController.SetLevel(speedController.MaxLevel, SpeedChangeReason.DebugCommand, this);
-                runner.position = new Vector3(0f, runner.position.y, tuning.bossDistance - 12f);
+                runner.position = new Vector3(0f, runner.position.y, tuning.bossDistance - 12f * CourseDistanceScale);
                 targetX = 0f;
             }
 #endif
@@ -468,7 +457,6 @@ namespace PlayableAd
             {
                 MoveRunner();
                 ProcessEncounters();
-                ProcessRoutePreviews();
                 CheckBossEntry();
             }
 
@@ -614,7 +602,18 @@ namespace PlayableAd
             if (Mathf.Abs(delta) <= tuning.dragDeadZone) return;
             delta -= Mathf.Sign(delta) * tuning.dragDeadZone;
             if (tuning.invertDragInput) delta = -delta;
-            targetX = dragOriginTargetX + delta * tuning.normalizedDragRange;
+            float pixelDelta = delta * Mathf.Max(1f, Screen.width);
+            targetX = dragOriginTargetX + pixelDelta / GetRunnerPixelsPerWorldUnit() * tuning.dragFollowRatio;
+        }
+
+        private float GetRunnerPixelsPerWorldUnit()
+        {
+            if (gameCamera == null || runner == null)
+                return Mathf.Max(1f, Screen.width / (tuning.laneHalfWidth * 2f));
+
+            Vector3 center = gameCamera.WorldToScreenPoint(runner.position);
+            Vector3 oneUnitRight = gameCamera.WorldToScreenPoint(runner.position + Vector3.right);
+            return Mathf.Max(1f, Mathf.Abs(oneUnitRight.x - center.x));
         }
 
         private void OnApplicationFocus(bool hasFocus)
@@ -642,13 +641,25 @@ namespace PlayableAd
             float forwardSpeed = forwardMotion != null
                 ? forwardMotion.Tick(Time.deltaTime, true)
                 : speedController.GetForwardSpeed();
-            float x = Mathf.MoveTowards(runner.position.x, targetX, tuning.lateralSpeed * Time.deltaTime);
+            float x = dragging
+                ? targetX
+                : Mathf.MoveTowards(runner.position.x, targetX, tuning.lateralSpeed * Time.deltaTime);
             runner.position = new Vector3(x, runner.position.y, runner.position.z + forwardSpeed * Time.deltaTime);
 
-            if (FormalStarted && !bossSequence && speedController.AutomaticSpeedDecayEnabled)
-                speedController.ApplyMainRunDecay(Time.deltaTime);
+            if (FormalStarted && !bossSequence && tuning.forwardSpeedLossEnabled && !IsInsideBossSpeedProtectionZone())
+            {
+                speedController.ApplyContinuousSpeedLoss(Time.deltaTime, tuning.forwardSpeedLossPerSecond,
+                    tuning.minimumSpeedAfterLoss, this);
+            }
 
             UpdateRunnerFeedback(forwardSpeed, true);
+        }
+
+        private bool IsInsideBossSpeedProtectionZone()
+        {
+            if (runner == null) return false;
+            float distanceToBoss = tuning.bossDistance - runner.position.z;
+            return distanceToBoss <= Mathf.Max(0f, tuning.bossSpeedProtectionDistance);
         }
 
         private float GetForwardSpeed()
@@ -813,100 +824,6 @@ namespace PlayableAd
                 encounter.dangerPreviewPlayed = true;
                 audioFeedback?.PlayDangerPreview();
             }
-            if (elapsed < calloutUntil) return;
-            if (outcome == CollisionOutcome.SpeedGain && !gainPreviewTutorialShown)
-            {
-                gainPreviewTutorialShown = true;
-                callout = "GREEN + UP: SPEED GAIN";
-            }
-            else if (outcome == CollisionOutcome.Neutral && !neutralPreviewTutorialShown)
-            {
-                neutralPreviewTutorialShown = true;
-                callout = "BLUE-WHITE LINE: SPEED HOLDS";
-            }
-            else if (outcome == CollisionOutcome.SpeedLoss && !lossPreviewTutorialShown)
-            {
-                lossPreviewTutorialShown = true;
-                callout = "DARK RED + DOWN: SPEED COST";
-            }
-            else return;
-            calloutUntil = elapsed + 1.35f;
-        }
-
-        private void ProcessRoutePreviews()
-        {
-            if (routeChoicePreview == null) return;
-            routeChoicePreview.Tick(Time.unscaledDeltaTime);
-            if (!FormalStarted)
-            {
-                routeChoicePreview.Hide();
-                activeRouteChoice = null;
-                return;
-            }
-            if (activeRouteChoice != null)
-            {
-                if (runner.position.z > activeRouteChoice.choiceZ + 1.5f)
-                {
-                    activeRouteChoice.consumed = true;
-                    activeRouteChoice = null;
-                    routeChoicePreview.Hide();
-                }
-                return;
-            }
-
-            float previewDistance = Mathf.Clamp(GetForwardSpeed() * routePreviewPresentation.previewTime,
-                routePreviewPresentation.minimumPreviewDistance, routePreviewPresentation.maximumPreviewDistance);
-            RouteChoiceZoneData nearest = null;
-            float nearestDistance = float.MaxValue;
-            for (int i = 0; i < routeChoiceZones.Count; i++)
-            {
-                RouteChoiceZoneData zone = routeChoiceZones[i];
-                if (zone.consumed) continue;
-                float distance = zone.choiceZ - runner.position.z;
-                if (distance < -1.5f)
-                {
-                    zone.consumed = true;
-                    continue;
-                }
-                if (distance >= 0f && distance <= previewDistance && distance < nearestDistance)
-                {
-                    nearest = zone;
-                    nearestDistance = distance;
-                }
-            }
-            if (nearest == null) return;
-            activeRouteChoice = nearest;
-            routeChoicePreview.Show(nearest, speedController.CurrentSpeed, playerSpeed);
-            ShowRouteTutorial(nearest);
-        }
-
-        private void ShowRouteTutorial(RouteChoiceZoneData zone)
-        {
-            bool hasSpecial = false;
-            bool hasRisk = false;
-            for (int i = 0; i < zone.evaluations.Length; i++)
-            {
-                RouteState state = zone.evaluations[i].State;
-                hasSpecial |= state == RouteState.SpecialBoost;
-                hasRisk |= state == RouteState.Risk || state == RouteState.HeavyRisk;
-            }
-            if (!routeTutorialShown)
-            {
-                routeTutorialShown = true;
-                callout = "FOLLOW GREEN UP ARROWS TO BUILD SPEED";
-            }
-            else if (hasSpecial && !specialRouteTutorialShown)
-            {
-                specialRouteTutorialShown = true;
-                callout = "GOLD LIGHTNING BREAKS THE SOFT CAP";
-            }
-            else if (hasRisk && !riskRouteTutorialShown)
-            {
-                riskRouteTutorialShown = true;
-                callout = "DARK RED ROUTES COST SPEED";
-            }
-            else return;
-            calloutUntil = elapsed + 1.6f;
         }
 
         private IEnumerator BreakWallSequence(Encounter encounter)
@@ -1019,11 +936,10 @@ namespace PlayableAd
                 callout = "SMASH!";
                 calloutUntil = elapsed + 0.75f;
                 Impact(encounter, CollisionOutcome.SpeedGain, true, 1.15f);
-                float softCap = playerSpeed.normalImpactSoftCap;
-                bool wasAtSoftCap = speedBeforeImpact >= softCap - 0.001f;
-                int shards = wasAtSoftCap ? impactPresentation.minEnergyShards : impactPresentation.maxEnergyShardsPerHit;
+                bool wasAtMaximum = speedBeforeImpact >= playerSpeed.maximumSpeed - 0.001f;
+                int shards = wasAtMaximum ? impactPresentation.minEnergyShards : impactPresentation.maxEnergyShardsPerHit;
                 effectPool?.PlayEnergyReturn(encounter.root.transform.position + Vector3.up * 0.65f, shards,
-                    speedVisualProfile.Get(CurrentTier).primaryColor, wasAtSoftCap ? 0.55f : 1f);
+                    speedVisualProfile.Get(CurrentTier).primaryColor, wasAtMaximum ? 0.55f : 1f);
             }
             else if (resolution == ObstacleResolutionType.Equal)
             {
@@ -1051,13 +967,10 @@ namespace PlayableAd
         private ObstacleResolutionType ResolveObstacle(Encounter encounter)
         {
             if (encounter.obstacle == null) return ObstacleResolutionType.Equal;
-            // All ordinary low-level collisions use the same configured soft cap. The old
-            // tutorial cap equalled the potion's level-4 value and silently cancelled rewards.
-            float softCap = playerSpeed.normalImpactSoftCap;
             float boost = encounter.obstacle.Type == ObstacleType.Soldier && encounter.tier == 1
                 ? playerSpeed.levelOneSoldierBoost
                 : playerSpeed.normalImpactBoost;
-            return encounter.obstacle.Resolve(speedController, boost, softCap);
+            return encounter.obstacle.Resolve(speedController, boost, playerSpeed.maximumSpeed);
         }
 
         private void Impact(Encounter encounter, CollisionOutcome outcome, bool launchTarget, float strength)
@@ -1350,7 +1263,7 @@ namespace PlayableAd
         {
             speedController.DropOneLevel(SpeedChangeReason.BossEvent, this);
             Vector3 from = runner.position;
-            Vector3 to = new Vector3(0f, runner.position.y, tuning.bossDistance - 58f);
+            Vector3 to = new Vector3(0f, runner.position.y, tuning.bossDistance - 58f * CourseDistanceScale);
             float timer = 0f;
             while (timer < 0.75f)
             {
@@ -1415,11 +1328,12 @@ namespace PlayableAd
 
         private void SpawnFallbackBoosts()
         {
-            float start = tuning.bossDistance - 46f;
+            float scale = CourseDistanceScale;
+            float start = tuning.bossDistance - 46f * scale;
             CreateElixir(-2.2f, start, false, true, 8);
-            CreateElixir(2.2f, start + 11f, false, true, 9);
-            CreateElixir(0f, start + 22f, false, true, 10);
-            CreateElixir(0f, tuning.bossDistance - 10f, false, true, playerSpeed.bossVictoryLevel);
+            CreateElixir(2.2f, start + 11f * scale, false, true, 9);
+            CreateElixir(0f, start + 22f * scale, false, true, 10);
+            CreateElixir(0f, tuning.bossDistance - 10f * scale, false, true, playerSpeed.bossVictoryLevel);
         }
 
         private void BuildWorld()
@@ -1436,7 +1350,6 @@ namespace PlayableAd
             BuildEffectPool();
             BuildEnemyBreakPool();
             BuildSpeedBar();
-            BuildRouteChoicePreview();
             BuildSpeedLevelFeedback();
             BuildBossArea();
         }
@@ -1469,17 +1382,6 @@ namespace PlayableAd
             canvasRoot.transform.SetParent(transform, false);
             speedBarView = canvasRoot.AddComponent<SpeedBarView>();
             speedBarView.Initialize(speedController, speedVisualProfile);
-        }
-
-        private void BuildRouteChoicePreview()
-        {
-            GameObject previewRoot = new GameObject("RouteChoicePreviewPool");
-            previewRoot.transform.SetParent(worldRoot, false);
-            routeChoicePreview = previewRoot.AddComponent<RouteChoicePreview>();
-            Material material = speedVisualProfile.lineMaterial != null
-                ? speedVisualProfile.lineMaterial
-                : RuntimeStyle.CreateMaterial(Color.white, 0f, 0.1f);
-            routeChoicePreview.Initialize(routePreviewPresentation, material);
         }
 
         private void BuildSpeedLevelFeedback()
@@ -1642,8 +1544,6 @@ namespace PlayableAd
             lastUiTier = level;
             speedReadout = level + "/" + speedController.MaxLevel;
             audioFeedback?.HandleSpeedChanged(change);
-            if (change.NewLevel != change.OldLevel && activeRouteChoice != null)
-                routeChoicePreview?.Reevaluate(change.NewValue, playerSpeed);
             if (change.NewLevel > change.OldLevel)
                 speedFeedback?.PulseLevelUp();
             else if (change.Reason == SpeedChangeReason.NormalImpact || change.Reason == SpeedChangeReason.LowLevelCollisionReward)
@@ -1719,26 +1619,12 @@ namespace PlayableAd
                     CreateSoldierSection(tutorialEndZ, tuning.soldierSections[i], i);
             }
 
-            System.Random random = new System.Random(tuning.proceduralSeed);
-            float endZ = tuning.bossDistance - tuning.bossApproachPadding;
-            int rowIndex = 0;
-            int firstChoiceZoneIndex = routeChoiceZones.Count;
-            for (float z = tutorialEndZ + tuning.firstChoiceOffsetFromTutorial; z < endZ; z += tuning.choiceRowSpacing)
-            {
-                if (IsNearSoldierSection(z, tutorialEndZ, 4f)) continue;
-                int balanced = GetConfiguredChoiceTier(random, 3);
-                int risk = GetConfiguredChoiceTier(random, Mathf.Min(5 + rowIndex / 4, speedController.MaxLevel - 1));
-                if ((rowIndex & 1) == 0) CreateChoice(z, balanced, 1, risk);
-                else CreateChoice(z, risk, 1, balanced);
-                rowIndex++;
-            }
-            BuildOrderedRouteSequences(firstChoiceZoneIndex, routeChoiceZones.Count);
-
+            float scale = CourseDistanceScale;
             int[] rewards = tuning.specialRewardLevels;
             float maintenanceZ = tutorialEndZ + tuning.maintenanceRewardSpacing;
             while (maintenanceZ < tuning.bossDistance - tuning.bossApproachPadding)
             {
-                while (IsNearSoldierSection(maintenanceZ, tutorialEndZ, 5f)) maintenanceZ += 12f;
+                while (IsNearSoldierSection(maintenanceZ, tutorialEndZ, 5f * scale)) maintenanceZ += 12f * scale;
                 CreateElixir(0f, maintenanceZ, false, false, tuning.maintenanceRewardLevel);
                 maintenanceZ += tuning.maintenanceRewardSpacing;
             }
@@ -1747,9 +1633,9 @@ namespace PlayableAd
             {
                 float rewardZ = tutorialEndZ + tuning.specialRewardSpacing;
                 int rewardIndex = 0;
-                while (rewardZ < tuning.bossDistance - 18f)
+                while (rewardZ < tuning.bossDistance - 18f * scale)
                 {
-                    while (IsNearSoldierSection(rewardZ, tutorialEndZ, 5f)) rewardZ += 12f;
+                    while (IsNearSoldierSection(rewardZ, tutorialEndZ, 5f * scale)) rewardZ += 12f * scale;
                     float x = rewardIndex % 2 == 0 ? 2.25f : -2.25f;
                     int targetLevel = Mathf.Clamp(rewards[Mathf.Min(rewardIndex, rewards.Length - 1)], 1, speedController.MaxLevel);
                     CreateElixir(x, rewardZ, false, false, targetLevel);
@@ -1758,25 +1644,7 @@ namespace PlayableAd
                 }
             }
 
-            CreateElixir(0f, tuning.bossDistance - 14f, false, false, playerSpeed.bossVictoryLevel);
-        }
-
-        private void BuildOrderedRouteSequences(int firstIndex, int endExclusive)
-        {
-            const int previewRowCount = 3;
-            for (int zoneIndex = firstIndex; zoneIndex < endExclusive; zoneIndex++)
-            {
-                RouteChoiceZoneData zone = routeChoiceZones[zoneIndex];
-                for (int offset = 1; offset < previewRowCount && zoneIndex + offset < endExclusive; offset++)
-                {
-                    RouteChoiceZoneData next = routeChoiceZones[zoneIndex + offset];
-                    for (int lane = 0; lane < 3; lane++)
-                    {
-                        if (next.routes[lane].steps.Count > 0)
-                            zone.routes[lane].steps.Add(next.routes[lane].steps[0]);
-                    }
-                }
-            }
+            CreateElixir(0f, tuning.bossDistance - 14f * scale, false, false, playerSpeed.bossVictoryLevel);
         }
 
         private void CreateSoldierSection(float tutorialEndZ, SoldierFormationSettings section, int sectionIndex)
@@ -1785,24 +1653,66 @@ namespace PlayableAd
             GameObject sectionObject = new GameObject("SoldierSection_" + (sectionIndex + 1) + "_" + section.sectionName);
             sectionObject.transform.SetParent(worldRoot, false);
             float startZ = tutorialEndZ + section.startOffsetFromTutorial;
-            int count = Mathf.Clamp(section.soldierCount, 6, 20);
-            float spacing = GetSectionSpacing(section);
-            int rewardLane = GetControlledRewardLane(sectionIndex, tuning.proceduralSeed);
-            generatedRewardLaneCounts[rewardLane + 1]++;
-            float laneCenter = rewardLane * tuning.rewardLaneOffset;
-            for (int i = 0; i < count; i++)
+            int densityRows = Mathf.Clamp(section.soldierCount, 6, 50);
+            bool useStraightLane = section.placementMode != SoldierPlacementMode.RandomDense;
+            int totalSoldiers = useStraightLane ? densityRows : densityRows * 3;
+            float spacing = GetSectionForwardSpacing(section);
+            float sectionLength = Mathf.Max(spacing, (densityRows - 1) * spacing);
+            float longitudinalStep = sectionLength / Mathf.Max(1, totalSoldiers - 1);
+            float safeHalfWidth = Mathf.Max(0.5f, tuning.laneHalfWidth - 0.35f);
+            float coverageHalfWidth = safeHalfWidth * Mathf.Clamp(section.horizontalCoverage, 0.4f, 1f);
+            float forwardJitter = Mathf.Clamp(section.forwardRandomness, 0f, 0.9f);
+            System.Random random = new System.Random(GetSoldierSectionSeed(tuning.proceduralSeed, sectionIndex));
+            float laneCenterX = GetSoldierLaneCenter(section.placementMode, safeHalfWidth);
+
+            for (int soldierIndex = 0; soldierIndex < totalSoldiers; soldierIndex++)
             {
-                Vector2 offset = GetFormationOffset(section, i, count, spacing, laneCenter, tuning.laneHalfWidth);
-                CreateTarget(offset.x, startZ + offset.y, 1, sectionObject.transform, "Soldier_L1_" + (i + 1));
+                float x;
+                float z;
+                if (useStraightLane)
+                {
+                    x = laneCenterX;
+                    z = soldierIndex * spacing;
+                }
+                else
+                {
+                    x = Mathf.Lerp(-coverageHalfWidth, coverageHalfWidth, (float)random.NextDouble());
+                    float baseZ = soldierIndex * longitudinalStep;
+                    float jitter = ((float)random.NextDouble() * 2f - 1f) * longitudinalStep * forwardJitter;
+                    z = Mathf.Clamp(baseZ + jitter, 0f, sectionLength);
+                }
+
+                CreateTarget(x, startZ + z, 1, sectionObject.transform,
+                    "Soldier_L1_" + section.placementMode + "_" + (soldierIndex + 1));
                 generatedLevelOneSoldierCount++;
             }
         }
 
-        private float GetSectionSpacing(SoldierFormationSettings section)
+        private float GetSoldierLaneCenter(SoldierPlacementMode placementMode, float safeHalfWidth)
         {
-            int levelIndex = Mathf.Clamp(section.expectedEntryLevel, 1, playerSpeed.forwardSpeeds.Length) - 1;
-            float expectedForwardSpeed = playerSpeed.forwardSpeeds[levelIndex];
-            return Mathf.Max(section.minimumForwardSpacing, expectedForwardSpeed * section.targetHitInterval);
+            float laneCenterOffset = Mathf.Clamp(tuning.laneHalfWidth * (2f / 3f), 0f, safeHalfWidth);
+            switch (placementMode)
+            {
+                case SoldierPlacementMode.LeftLaneLine:
+                    return -laneCenterOffset;
+                case SoldierPlacementMode.RightLaneLine:
+                    return laneCenterOffset;
+                default:
+                    return 0f;
+            }
+        }
+
+        private static int GetSoldierSectionSeed(int seed, int sectionIndex)
+        {
+            unchecked
+            {
+                return seed * 486187739 + (sectionIndex + 1) * 16777619;
+            }
+        }
+
+        private static float GetSectionForwardSpacing(SoldierFormationSettings section)
+        {
+            return Mathf.Max(0.1f, section.minimumForwardSpacing);
         }
 
         public static int GetControlledRewardLane(int sectionIndex, int seed)
@@ -1814,40 +1724,6 @@ namespace PlayableAd
             return sequence[(Mathf.Max(0, sectionIndex) + seedOffset) % sequence.Length];
         }
 
-        private static Vector2 GetFormationOffset(SoldierFormationSettings section, int index, int count,
-            float spacing, float laneCenter, float laneHalfWidth)
-        {
-            float z = index * spacing;
-            float x;
-            switch (section.pattern)
-            {
-                case SoldierFormationPattern.DoubleColumn:
-                    x = (index & 1) == 0 ? -section.lateralSpread : section.lateralSpread;
-                    break;
-                case SoldierFormationPattern.CompactGrid:
-                    int lane = index % 5;
-                    x = lane == 0 ? -section.lateralSpread : lane == 1 ? 0f : lane == 2 ? section.lateralSpread : lane == 3 ? -section.lateralSpread * 0.5f : section.lateralSpread * 0.5f;
-                    break;
-                case SoldierFormationPattern.CenterFunnel:
-                    float remaining = 1f - index / (float)Mathf.Max(1, count - 1);
-                    x = (index & 1) == 0 ? -section.lateralSpread * remaining : section.lateralSpread * remaining;
-                    break;
-                case SoldierFormationPattern.Wedge:
-                    float wedge = Mathf.Sqrt(index / (float)Mathf.Max(1, count - 1));
-                    x = index == 0 ? 0f : (index & 1) == 0 ? -section.lateralSpread * wedge : section.lateralSpread * wedge;
-                    break;
-                case SoldierFormationPattern.Arc:
-                    x = Mathf.Sin(index / (float)Mathf.Max(1, count - 1) * Mathf.PI * 2f) * section.lateralSpread;
-                    break;
-                default:
-                    int stagger = index % 4;
-                    x = stagger == 0 ? 0f : stagger == 1 ? -section.lateralSpread : stagger == 2 ? section.lateralSpread : 0f;
-                    break;
-            }
-            float safeHalfWidth = Mathf.Max(0.5f, laneHalfWidth - 0.35f);
-            return new Vector2(Mathf.Clamp(laneCenter + x, -safeHalfWidth, safeHalfWidth), z);
-        }
-
         private bool IsNearSoldierSection(float z, float tutorialEndZ, float padding)
         {
             if (tuning.soldierSections == null) return false;
@@ -1856,65 +1732,10 @@ namespace PlayableAd
                 SoldierFormationSettings section = tuning.soldierSections[i];
                 if (section == null) continue;
                 float start = tutorialEndZ + section.startOffsetFromTutorial - padding;
-                float end = start + Mathf.Max(0, section.soldierCount - 1) * GetSectionSpacing(section) + padding * 2f;
+                float end = start + Mathf.Max(0, section.soldierCount - 1) * GetSectionForwardSpacing(section) + padding * 2f;
                 if (z >= start && z <= end) return true;
             }
             return false;
-        }
-
-        private int GetConfiguredChoiceTier(System.Random random, int minimum)
-        {
-            int[] pool = tuning.choiceTierPool;
-            if (pool == null || pool.Length == 0) return Mathf.Clamp(minimum, 1, speedController.MaxLevel);
-            int start = random.Next(0, pool.Length);
-            for (int i = 0; i < pool.Length; i++)
-            {
-                int value = Mathf.Clamp(pool[(start + i) % pool.Length], 1, speedController.MaxLevel);
-                if (value >= minimum) return value;
-            }
-            return Mathf.Clamp(minimum, 1, speedController.MaxLevel);
-        }
-
-        private void CreateChoice(float z, int leftTier, int centerTier, int rightTier)
-        {
-            RouteChoiceZoneData zone = CreateRouteZone("Choice_" + routeChoiceZones.Count, z);
-            AddObstacleStep(zone.routes[0], leftTier);
-            AddObstacleStep(zone.routes[1], centerTier);
-            AddObstacleStep(zone.routes[2], rightTier);
-            routeChoiceZones.Add(zone);
-            CreateTarget(-2.35f, z, leftTier);
-            CreateTarget(0f, z, centerTier);
-            CreateTarget(2.35f, z, rightTier);
-        }
-
-        private RouteChoiceZoneData CreateRouteZone(string id, float z)
-        {
-            RouteChoiceZoneData zone = new RouteChoiceZoneData { zoneId = id, choiceZ = z };
-            float[] laneX = { -2.35f, 0f, 2.35f };
-            for (int i = 0; i < 3; i++)
-            {
-                zone.routes[i] = new RouteLanePreviewData
-                {
-                    routeId = id + "_" + (i == 0 ? "Left" : i == 1 ? "Center" : "Right"),
-                    laneIndex = i - 1,
-                    laneX = laneX[i]
-                };
-            }
-            return zone;
-        }
-
-        private void AddObstacleStep(RouteLanePreviewData route, int requiredLevel)
-        {
-            float boost = requiredLevel == 1 ? playerSpeed.levelOneSoldierBoost : playerSpeed.normalImpactBoost;
-            route.steps.Add(RoutePreviewStep.Obstacle(requiredLevel, boost, playerSpeed.normalImpactSoftCap));
-        }
-
-        private void RegisterSpecialRoute(float x, float z, int targetLevel)
-        {
-            RouteChoiceZoneData zone = CreateRouteZone("Special_" + routeChoiceZones.Count, z);
-            int lane = x < -0.8f ? 0 : x > 0.8f ? 2 : 1;
-            zone.routes[lane].steps.Add(RoutePreviewStep.SetLevelReward(targetLevel));
-            routeChoiceZones.Add(zone);
         }
 
         private void CreateTarget(float x, float z, int tier, Transform parent = null, string objectName = "Target")
@@ -2077,7 +1898,6 @@ namespace PlayableAd
         private void CreateElixir(float x, float z, bool openingBoost = false, bool fallbackBoost = false, int targetLevel = 0)
         {
             int resolvedTargetLevel = targetLevel > 0 ? Mathf.Clamp(targetLevel, 1, speedController.MaxLevel) : playerSpeed.tutorialElixirTargetLevel;
-            if (!openingBoost) RegisterSpecialRoute(x, z, resolvedTargetLevel);
             GameObject root = new GameObject("RoyalElixir");
             root.transform.SetParent(worldRoot, false);
             root.transform.position = new Vector3(x, 0.9f, z);
@@ -2183,7 +2003,7 @@ namespace PlayableAd
                     + "\nFOV " + (gameCamera != null ? gameCamera.fieldOfView.ToString("F1") : "-") + "  Anim " + CurrentAnimationSpeed.ToString("F2")
                     + "  Wind " + (audioFeedback != null ? audioFeedback.CurrentWindVolume.ToString("F2") : "-")
                     + "\nLast " + speedController.LastSpeedChangeReason + " @ " + speedController.LastSpeedChangeTime.ToString("F2")
-                    + "  AutoDecay " + speedController.AutomaticSpeedDecayEnabled
+                    + "  SpeedLoss " + tuning.forwardSpeedLossEnabled + " @ " + tuning.forwardSpeedLossPerSecond.ToString("F2") + "/s"
                     + "\n[1-0] Level  [T] 100m test  Last " + (debugLastSegmentTime > 0f ? debugLastSegmentTime.ToString("F2") + "s" : "-");
                 GUI.Box(new Rect(width - 315f, 18f, 300f, 130f), diagnostics);
             }

@@ -14,19 +14,52 @@ namespace PlayableAd.Editor
             serializedObject.Update();
 
             SerializedProperty property = serializedObject.GetIterator();
-            bool enterChildren = true;
-            while (property.NextVisible(enterChildren))
+            if (property.NextVisible(true))
             {
-                bool isScript = property.propertyPath == "m_Script";
+                do
+                {
+                    DrawProperty(property);
+                } while (property.NextVisible(false));
+            }
+
+            serializedObject.ApplyModifiedProperties();
+        }
+
+        private static void DrawProperty(SerializedProperty property)
+        {
+            bool isScript = property.propertyPath == "m_Script";
+            bool drawFoldout = property.propertyType == SerializedPropertyType.Generic && property.hasVisibleChildren;
+            if (!drawFoldout)
+            {
                 using (new EditorGUI.DisabledScope(isScript))
                 {
                     EditorGUILayout.PropertyField(property, GetLabel(property), false);
                 }
-
-                enterChildren = property.isExpanded;
+                return;
             }
 
-            serializedObject.ApplyModifiedProperties();
+            // PropertyField draws HeaderAttribute decorators for leaf fields. Foldouts are
+            // rendered manually here, so only generic properties need a manual header.
+            FieldInfo field = FindField(property.serializedObject.targetObject.GetType(), property.propertyPath);
+            HeaderAttribute header = field != null ? field.GetCustomAttribute<HeaderAttribute>() : null;
+            if (header != null)
+                EditorGUILayout.LabelField(header.header, EditorStyles.boldLabel);
+
+            Rect foldoutRect = EditorGUILayout.GetControlRect();
+            property.isExpanded = EditorGUI.Foldout(foldoutRect, property.isExpanded, GetLabel(property), true);
+            if (!property.isExpanded)
+                return;
+
+            EditorGUI.indentLevel++;
+            SerializedProperty child = property.Copy();
+            SerializedProperty end = child.GetEndProperty();
+            bool enterChildren = true;
+            while (child.NextVisible(enterChildren) && !SerializedProperty.EqualContents(child, end))
+            {
+                DrawProperty(child);
+                enterChildren = false;
+            }
+            EditorGUI.indentLevel--;
         }
 
         private static GUIContent GetLabel(SerializedProperty property)
