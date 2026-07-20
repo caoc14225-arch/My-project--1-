@@ -1,0 +1,627 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!29 &1
+OcclusionCullingSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_OcclusionBakeSettings:
+    smallestOccluder: 5
+    smallestHole: 0.25
+    backfaceThreshold: 100
+  m_SceneGUID: 00000000000000000000000000000000
+  m_OcclusionCullingData: {fileID: 0}
+--- !u!104 &2
+RenderSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 9
+  m_Fog: 0
+  m_FogColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  m_FogMode: 3
+  m_FogDensity: 0.01
+  m_LinearFogStart: 0
+  m_LinearFogEnd: 300
+  m_AmbientSkyColor: {r: 0.212, g: 0.227, b: 0.259, a: 1}
+  m_AmbientEquatorColor: {r: 0.114, g: 0.125, b: 0.133, a: 1}
+  m_AmbientGroundColor: {r: 0.047, g: 0.043, b: 0.035, a: 1}
+  m_AmbientIntensity: 1
+  m_AmbientMode: 3
+  m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
+  m_SkyboxMaterial: {fileID: 0}
+  m_HaloStrength: 0.5
+  m_FlareStrength: 1
+  m_FlareFadeSpeed: 3
+  m_HaloTexture: {fileID: 0}
+  m_SpotCookie: {fileID: 10001, guid: 0000000000000000e000000000000000, type: 0}
+  m_DefaultReflectionMode: 0
+  m_DefaultReflectionResolution: 128
+  m_ReflectionBounces: 1
+  m_ReflectionIntensity: 1
+  m_CustomReflection: {fileID: 0}
+  m_Sun: {fileID: 0}
+  m_UseRadianceAmbientProbe: 0
+--- !u!157 &3
+LightmapSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 12
+  m_GIWorkflowMode: 1
+  m_GISettings:
+    serializedVersion: 2
+    m_BounceScale: 1
+    m_IndirectOutputScale: 1
+    m_AlbedoBoost: 1
+    m_EnvironmentLightingMode: 0
+    m_EnableBakedLightmaps: 0
+    m_EnableRealtimeLightmaps: 0
+  m_LightmapEditorSettings:
+    serializedVersion: 12
+    m_Resolution: 2
+    m_BakeResolution: 40
+    m_AtlasSize: 1024
+    m_AO: 0
+    m_AOMaxDistance: 1
+    m_CompAOExponent: 1
+    m_CompAOExponentDirect: 0
+    m_ExtractAmbientOcclusion: 0
+    m_Padding: 2
+    m_LightmapParameters: {fileID: 0}
+    m_LightmapsBakeMode: 1
+    m_TextureCompression: 1
+    m_FinalGather: 0
+    m_FinalGatherFiltering: 1
+    m_FinalGatherRayCount: 256
+    m_ReflectionCompression: 2
+    m_MixedBakeMode: 2
+    m_BakeBackend: 0
+    m_PVRSampling: 1
+    m_PVRDirectSampleCount: 32
+    m_PVRSampleCount: 500
+    m_PVRBounces: 2
+    m_PVREnvironmentSampleCount: 500
+    m_PVREnvironmentReferencePointCount: 2048
+    m_PVRFilteringMode: 2
+    m_PVRDenoiserTypeDirect: 0
+    m_PVRDenoiserTypeIndirect: 0
+    m_PVRDenoiserTypeAO: 0
+    m_PVRFilterTypeDirect: 0
+    m_PVRFilterTypeIndirect: 0
+    m_PVRFilterTypeAO: 0
+    m_PVREnvironmentMIS: 0
+    m_PVRCulling: 1
+    m_PVRFilteringGaussRadiusDirect: 1
+    m_PVRFilteringGaussRadiusIndirect: 5
+    m_PVRFilteringGaussRadiusAO: 2
+    m_PVRFilteringAtrousPositionSigmaDirect: 0.5
+    m_PVRFilteringAtrousPositionSigmaIndirect: 2
+    m_PVRFilteringAtrousPositionSigmaAO: 1
+    m_ExportTrainingData: 0
+    m_TrainingDataDestination: TrainingData
+    m_LightProbeSampleCountMultiplier: 4
+  m_LightingDataAsset: {fileID: 0}
+  m_LightingSettings: {fileID: 0}
+--- !u!196 &4
+NavMeshSettings:
+  serializedVersion: 2
+  m_ObjectHideFlags: 0
+  m_BuildSettings:
+    serializedVersion: 3
+    agentTypeID: 0
+    agentRadius: 0.5
+    agentHeight: 2
+    agentSlope: 45
+    agentClimb: 0.4
+    ledgeDropHeight: 0
+    maxJumpAcrossDistance: 0
+    minRegionArea: 2
+    manualCellSize: 0
+    cellSize: 0.16666667
+    manualTileSize: 0
+    tileSize: 256
+    buildHeightMesh: 0
+    maxJobWorkers: 0
+    preserveTilesOutsideBounds: 0
+    debug:
+      m_Flags: 0
+  m_NavMeshData: {fileID: 0}
+--- !u!1 &519420028
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 519420032}
+  - component: {fileID: 519420031}
+  - component: {fileID: 519420029}
+  m_Layer: 0
+  m_Name: Main Camera
+  m_TagString: MainCamera
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!81 &519420029
+AudioListener:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 519420028}
+  m_Enabled: 1
+--- !u!20 &519420031
+Camera:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 519420028}
+  m_Enabled: 1
+  serializedVersion: 2
+  m_ClearFlags: 2
+  m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
+  m_projectionMatrixMode: 1
+  m_GateFitMode: 2
+  m_FOVAxisMode: 0
+  m_Iso: 200
+  m_ShutterSpeed: 0.005
+  m_Aperture: 16
+  m_FocusDistance: 10
+  m_FocalLength: 50
+  m_BladeCount: 5
+  m_Curvature: {x: 2, y: 11}
+  m_BarrelClipping: 0.25
+  m_Anamorphism: 0
+  m_SensorSize: {x: 36, y: 24}
+  m_LensShift: {x: 0, y: 0}
+  m_NormalizedViewPortRect:
+    serializedVersion: 2
+    x: 0
+    y: 0
+    width: 1
+    height: 1
+  near clip plane: 0.3
+  far clip plane: 1000
+  field of view: 60
+  orthographic: 0
+  orthographic size: 5
+  m_Depth: -1
+  m_CullingMask:
+    serializedVersion: 2
+    m_Bits: 4294967295
+  m_RenderingPath: -1
+  m_TargetTexture: {fileID: 0}
+  m_TargetDisplay: 0
+  m_TargetEye: 0
+  m_HDR: 1
+  m_AllowMSAA: 0
+  m_AllowDynamicResolution: 0
+  m_ForceIntoRT: 0
+  m_OcclusionCulling: 0
+  m_StereoConvergence: 10
+  m_StereoSeparation: 0.022
+--- !u!4 &519420032
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 519420028}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -10}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &2069326154
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2069326156}
+  - component: {fileID: 2069326155}
+  m_Layer: 0
+  m_Name: PlayableAdRoot
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &2069326155
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2069326154}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b9ae87339bb32cb4888cf5a2acfb477d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  tuning:
+    targetDuration: 90
+    tutorialDuration: 7
+    openingElixirTime: 2
+    tutorialSoldierCount: 5
+    tutorialSoldierSpacing: 3
+    tutorialFirstSoldierGap: 4
+    tutorialWallGap: 10
+    bossDistance: 1300
+    choiceRowSpacing: 22
+    firstChoiceOffsetFromTutorial: 42
+    maintenanceRewardSpacing: 220
+    maintenanceRewardLevel: 4
+    specialRewardSpacing: 270
+    bossApproachPadding: 35
+    proceduralSeed: 41723
+    rewardLaneOffset: 2.15
+    choiceTierPool: 0100000003000000040000000500000006000000070000000800000009000000
+    specialRewardLevels: 0700000008000000090000000a000000
+    soldierSections:
+    - sectionName: MomentumBuild
+      startOffsetFromTutorial: 12
+      soldierCount: 10
+      pattern: 0
+      expectedEntryLevel: 4
+      targetHitInterval: 0.25
+      minimumForwardSpacing: 0.9
+      lateralSpread: 0.55
+      climax: 0
+    - sectionName: SplitColumns
+      startOffsetFromTutorial: 320
+      soldierCount: 12
+      pattern: 1
+      expectedEntryLevel: 4
+      targetHitInterval: 0.25
+      minimumForwardSpacing: 0.9
+      lateralSpread: 1.05
+      climax: 0
+    - sectionName: ImpactClimax
+      startOffsetFromTutorial: 700
+      soldierCount: 15
+      pattern: 2
+      expectedEntryLevel: 4
+      targetHitInterval: 0.25
+      minimumForwardSpacing: 0.9
+      lateralSpread: 1.45
+      climax: 0
+    - sectionName: BossSprint
+      startOffsetFromTutorial: 1120
+      soldierCount: 12
+      pattern: 3
+      expectedEntryLevel: 4
+      targetHitInterval: 0.25
+      minimumForwardSpacing: 0.9
+      lateralSpread: 1.8
+      climax: 0
+    maxActiveEnemies: 48
+    spawnAheadDistance: 90
+    recycleDistance: 18
+    targetPreviewTime: 1.35
+    minimumTargetPreviewDistance: 12
+    maximumTargetPreviewDistance: 54
+    enemyPreloadTime: 5
+    enemyVisiblePreviewTime: 3.2
+    enemyActiveTime: 1.35
+    minimumEnemyPreloadDistance: 32
+    maximumEnemyPreloadDistance: 140
+    minimumEnemyVisibleDistance: 20
+    maximumEnemyVisibleDistance: 100
+    minimumEnemyActiveDistance: 10
+    maximumEnemyActiveDistance: 52
+    maxPreloadedEnemies: 80
+    maxDistantVisibleEnemies: 48
+    fallbackBoostMagnetDistance: 7
+    fallbackBoostMagnetSpeed: 12
+    laneHalfWidth: 3.2
+    lateralSensitivity: 0.012
+    lateralSpeed: 9
+    normalizedDragRange: 6.4
+    dragDeadZone: 0.005
+    blockInputOverUi: 1
+    hitStopSeconds: 0.045
+    cameraShake: 0.24
+    fovPunch: 3.5
+    flashAlpha: 0.52
+    targetLaunchSeconds: 2.25
+    targetLaunchForce: 14
+    targetLaunchSideSpeed: 2.6
+    targetLaunchUpSpeed: 3.8
+    targetLaunchForwardScale: 0.42
+  playerSpeed:
+    minimumSpeed: 1
+    maximumSpeed: 10
+    levelStartSpeeds:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    - 8
+    - 9
+    - 9.5
+    forwardSpeeds:
+    - 6
+    - 7
+    - 8.5
+    - 10
+    - 12
+    - 14
+    - 16.5
+    - 19
+    - 22
+    - 26
+    baseAcceleration: 22
+    specialUpgradeAcceleration: 16
+    naturalDeceleration: 14
+    penaltyDeceleration: 32
+    startingLevel: 1
+    tutorialElixirTargetLevel: 4
+    automaticSpeedDecayEnabled: 0
+    mainRunDecayPerSecond: 0.1
+    logSpeedChanges: 0
+    levelOneSoldierBoost: 0.12
+    normalImpactBoost: 0.18
+    normalImpactSoftCap: 6.5
+    tutorialImpactSoftCap: 4
+    bossVictoryLevel: 10
+  autoBeginGameplay: 1
+  environment:
+    cameraFollowsPlayer: 1
+    cameraFollowsPlayerLaterally: 0
+    baseFieldOfView: 52
+    cameraHeight: 5.2
+    cameraBackDistance: 11.5
+    cameraLookAhead: 1.8
+    cameraFollowSharpness: 10
+    highSpeedPullback: 0.8
+    highSpeedLookAheadBonus: 1.2
+    environmentReferenceSpacing: 12
+    roadBoundaryThickness: 0.35
+    roadBoundaryHeight: 5.5
+    skyFogColor: {r: 0.24, g: 0.32, b: 0.39, a: 1}
+    roadColor: {r: 0.3, g: 0.33, b: 0.34, a: 1}
+    routeMarkColor: {r: 0.53, g: 0.54, b: 0.5, a: 1}
+    wallColor: {r: 0.31, g: 0.29, b: 0.28, a: 1}
+    castleColor: {r: 0.25, g: 0.28, b: 0.31, a: 1}
+    timberColor: {r: 0.25, g: 0.19, b: 0.15, a: 1}
+    lightEuler: {x: 46, y: -32, z: 0}
+    lightIntensity: 1.25
+    lightColor: {r: 1, g: 0.88, b: 0.75, a: 1}
+    ambientColor: {r: 0.52, g: 0.55, b: 0.58, a: 1}
+    shadowStrength: 0.58
+    shadowDistance: 48
+    fogStart: 42
+    fogEnd: 125
+  portraitCamera:
+    referenceAspectRatio: 0.5625
+    fieldOfView: 52
+    cameraHeight: 5
+    cameraBackDistance: 11.5
+    cameraLookAhead: 1.8
+    playerViewportPosition: 0.24
+    vanishingPointViewportPosition: 0.72
+    nearRoadWidth: 8.5
+    farRoadWidth: 1.5
+    visibleDepthRange: 60
+    minSupportedAspect: 0.45
+    maxSupportedAspect: 0.8
+  targetShapes:
+    tierShapes:
+    - {x: 0.82, y: 1.55, z: 0.78}
+    - {x: 1.05, y: 1.35, z: 0.76}
+    - {x: 1.18, y: 1.5, z: 0.8}
+    - {x: 1.28, y: 1.7, z: 0.82}
+    - {x: 1.35, y: 1.82, z: 0.84}
+    - {x: 1.42, y: 1.92, z: 0.86}
+    - {x: 1.5, y: 2.02, z: 0.88}
+    - {x: 1.58, y: 2.12, z: 0.9}
+    - {x: 1.68, y: 2.22, z: 0.94}
+    - {x: 1.8, y: 2.35, z: 1}
+  speedVisualProfile: {fileID: 11400000, guid: b4bcfcf38b69eef47a7a2f740ef1f34d, type: 2}
+  visualPerformance:
+    lowQualityMode: 0
+    enableSecondarySpeedLines: 1
+    lowQualityParticleMultiplier: 0.45
+    lowQualitySpeedLineCount: 6
+    lowQualityEnergyShardLimit: 12
+    lowQualityWallChunkCount: 6
+  elixirPresentation:
+    hoverHeight: 0.18
+    rotationSpeed: 72
+    breathSpeed: 2.2
+    emissionIntensity: 0.8
+    ringRadius: 1.1
+    totalDuration: 0.8
+    collapseDuration: 0.11
+    upgradeMoment: 0.18
+    slowMotionDuration: 0.09
+    slowMotionScale: 0.62
+    cameraPushIn: 1.8
+    cameraRebound: 3.2
+    pickupFlash: 0.32
+    energyRingMaxRadius: 1.25
+  impactPresentation:
+    impactPoolSize: 6
+    maxEnergyShards: 24
+    normalImpactParticles: 9
+    hitStopDuration: 0.045
+    hitStopTimeScale: 0.35
+    normalFlash: 0.16
+    trailPulseRecovery: 0.2
+    enableNormalHitStop: 0
+    normalCameraShake: 0.065
+    normalFovPunch: 0.8
+    normalShakeCooldown: 0.2
+    comboWindow: 0.65
+    comboPitchStep: 0.045
+    comboPitchSteps: 5
+    minEnergyShards: 3
+    maxEnergyShardsPerHit: 6
+    energyReturnDuration: 0.38
+    scatterRadius: 0.62
+  enemyBreakPresentation:
+    maxActiveFragments: 48
+    fragmentsPerEnemy: 4
+    fragmentLifetime: 1.35
+    minFragmentForce: 4.5
+    maxFragmentForce: 10.5
+    upwardForce: 4.2
+    lateralSpread: 3.2
+    minAngularVelocity: 4
+    maxAngularVelocity: 14
+    lowQualityFragmentMultiplier: 0.55
+  wallBreakPresentation:
+    anticipationDuration: 0.2
+    totalDuration: 0.82
+    slowMotionDuration: 0.11
+    slowMotionScale: 0.32
+    cameraRecovery: 0.3
+    cameraShake: 0.48
+    fovAnticipation: 2.5
+    fovImpact: 6.5
+    chunkForwardSpeed: 12
+    chunkSideSpeed: 6
+    chunkLifetime: 0.9
+    dustAmount: 16
+  outlinePresentation:
+    enabled: 1
+    gainColor: {r: 0.04, g: 1, b: 0.48, a: 0.92}
+    neutralColor: {r: 0.68, g: 0.86, b: 1, a: 0.84}
+    dangerColor: {r: 0.82, g: 0.035, b: 0.025, a: 0.76}
+    baseWidth: 0.045
+    transitionDuration: 0.15
+    dangerPulseSpeed: 1.8
+    dangerPulseAmount: 0.16
+    maxSceneBrightness: 0.78
+    enhancedOutcomeCues: 0
+    symbolScale: 0.48
+    outlineMaterial: {fileID: 2100000, guid: 625156dea1b9dbd4f8afd10d0ae8904a, type: 2}
+  routePreviewPresentation:
+    gainThreshold: 0.15
+    heavyRiskThreshold: 0.9
+    recommendMinScoreDifference: 0.22
+    previewTime: 1.6
+    fadeInDuration: 0.2
+    fadeOutDuration: 0.22
+    minimumPreviewDistance: 10
+    maximumPreviewDistance: 52
+    ribbonLength: 7.5
+    specialColor: {r: 1, g: 0.68, b: 0.08, a: 0.88}
+    gainColor: {r: 0.04, g: 1, b: 0.48, a: 0.84}
+    neutralColor: {r: 0.68, g: 0.86, b: 1, a: 0.68}
+    riskColor: {r: 0.46, g: 0.018, b: 0.025, a: 0.76}
+    ribbonWidth: 0.12
+    normalRibbonAlpha: 0.22
+    recommendedRibbonAlpha: 0.34
+    entryIconAlpha: 0.58
+    iconScale: 0.34
+  speedLevelFeedbackConfig: {fileID: 11400000, guid: abb605bf325454240a997ba6ac79f5f8, type: 2}
+  bossClashPresentation:
+    approachDuration: 0.5
+    contactDuration: 0.2
+    struggleDuration: 1.25
+    staggerDuration: 0.4
+    finishDuration: 0.4
+    contactShake: 0.3
+    struggleShake: 0.065
+    finishShake: 0.62
+    contactFovPunch: 3
+    finishFovPunch: 8
+    playerEnergy: {r: 1, g: 0.36, b: 0.04, a: 0.9}
+    bossEnergy: {r: 0.38, g: 0.03, b: 0.24, a: 0.86}
+    beamWidth: 0.28
+    centerBrightness: 0.78
+    pressureTravel: 2.8
+  audioPresentation:
+    audioEnabled: 1
+    hapticsEnabled: 1
+    useProceduralPlaceholders: 1
+    masterVolume: 0.85
+    sfxMixerGroup: {fileID: -2411722431968703118, guid: ac59b1a15c8bdb64982e174b101dec91, type: 2}
+    collisionSpatialBlend: 0.78
+    collisionMinDistance: 2
+    collisionMaxDistance: 24
+    footstepsLoop: {fileID: 0}
+    runningWindLoop: {fileID: 0}
+    speedEnergyLoop: {fileID: 0}
+    elixirPickup: {fileID: 0}
+    elixirAbsorb: {fileID: 0}
+    tierUpgrade: {fileID: 0}
+    tierUpgradeMajor: {fileID: 0}
+    tierUpgradeMax: {fileID: 0}
+    tierDrop: {fileID: 0}
+    impactPenalty: {fileID: 0}
+    speedGainImpact: {fileID: 0}
+    neutralImpact: {fileID: 0}
+    speedLossImpact: {fileID: 0}
+    dangerPreview: {fileID: 0}
+    soldierImpactVariants: []
+    impactTransient: {fileID: 0}
+    armorContact: {fileID: 0}
+    bodyWeight: {fileID: 0}
+    armorBreak: {fileID: 0}
+    highSpeedWhoosh: {fileID: 0}
+    soldierFlyAway: {fileID: 0}
+    energyReturn: {fileID: 0}
+    wallLowImpact: {fileID: 0}
+    wallStoneDebris: {fileID: 0}
+    wallDust: {fileID: 0}
+    wallImpactTail: {fileID: 0}
+    bossContact: {fileID: 0}
+    bossStruggleLoop: {fileID: 0}
+    bossFinishImpact: {fileID: 0}
+    cageBreak: {fileID: 0}
+    movementVolume: 0.22
+    normalImpactVolume: 0.5
+    upgradeVolume: 0.68
+    wallVolume: 0.82
+    bossVolume: 1
+    priorityDuckAmount: 0.32
+    actionVoiceCount: 5
+    normalImpactMinInterval: 0.07
+    energyReturnMinInterval: 0.08
+    dangerPreviewGlobalCooldown: 0.65
+    movementSmoothing: 12
+  playerVisualPrefab: {fileID: 1825439250495718832, guid: 343e0c9326ff77a4290fa49f3b58e8a1, type: 3}
+  playerAnimator: {fileID: 0}
+  tier1SoldierPrefab: {fileID: 7456086963729349228, guid: b9ec7e44c7039c54bb05fb06a812a4ce, type: 3}
+  tier4SoldierPrefab: {fileID: 3356697127791251490, guid: 9482cbbdf3aae5c4e9ae23fc7e8bd1e5, type: 3}
+  tier1SoldierBreakPrefab: {fileID: 4526551921959352974, guid: 18edcb8c064de434891c2decf873a8d5, type: 3}
+  tier4SoldierBreakPrefab: {fileID: 1671299715108195538, guid: 51f09c8ff4131184c8abd600096af8d0, type: 3}
+  tier1TargetHeight: 1.6
+  tier4TargetHeight: 2.2
+  bossVisualPrefab: {fileID: 0}
+  bossAnimator: {fileID: 0}
+  princessVisualPrefab: {fileID: 0}
+  princessAnimator: {fileID: 0}
+  showSpeedDebugOverlay: 0
+  debugTestSegmentLength: 100
+--- !u!4 &2069326156
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2069326154}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1660057539 &9223372036854775807
+SceneRoots:
+  m_ObjectHideFlags: 0
+  m_Roots:
+  - {fileID: 519420032}
+  - {fileID: 2069326156}

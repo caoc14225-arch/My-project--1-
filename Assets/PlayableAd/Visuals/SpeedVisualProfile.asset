@@ -1,0 +1,266 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ace5b5f9da8586f4ea5afcda52580a80, type: 3}
+  m_Name: SpeedVisualProfile
+  m_EditorClassIdentifier: 
+  trailMaterial: {fileID: 2100000, guid: 675c1cd5ffbff3f4a9c9c8c53a4bb418, type: 2}
+  lineMaterial: {fileID: 2100000, guid: f045ebddee5428f449c02f3f3ffd78e6, type: 2}
+  particleMaterial: {fileID: 2100000, guid: 1078b6a95c9b4334a9e32fb34061f736, type: 2}
+  tierTransitionDuration: 0.3
+  pooledSpeedLineCount: 14
+  maxAuraParticles: 36
+  normalBoostPulse: 0.2
+  levelUpPulse: 1
+  highSpeedEffectIntensity: 0.85
+  afterimagePoolSize: 6
+  shockRingPoolSize: 3
+  tiers:
+  - primaryColor: {r: 0.42, g: 0.92, b: 0.48, a: 1}
+    secondaryColor: {r: 0.7, g: 1, b: 0.75, a: 1}
+    trailLength: 0.45
+    trailWidth: 0.06
+    trailBrightness: 0.5
+    particleEmissionRate: 1
+    speedLineIntensity: 0.02
+    characterEnergyIntensity: 0.12
+    uiColor: {r: 0.42, g: 0.92, b: 0.48, a: 1}
+    airflowEmission: 0
+    airflowSpeed: 2
+    airflowLength: 0.25
+    airflowAlpha: 0
+    groundFlowIntensity: 0
+    afterimageRate: 0
+    afterimageLifetime: 0.12
+    pressureConeIntensity: 0
+    windVolume: 0
+    windPitch: 0.94
+    impactFeedbackMultiplier: 0.9
+    environmentResponseStrength: 0
+    fovBonus: 0
+    ambientShake: 0
+    chargeLean: 0
+  - primaryColor: {r: 0.12, g: 1, b: 0.24, a: 1}
+    secondaryColor: {r: 0.48, g: 1, b: 0.58, a: 1}
+    trailLength: 0.7
+    trailWidth: 0.08
+    trailBrightness: 0.68
+    particleEmissionRate: 3
+    speedLineIntensity: 0.08
+    characterEnergyIntensity: 0.22
+    uiColor: {r: 0.12, g: 1, b: 0.24, a: 1}
+    airflowEmission: 0
+    airflowSpeed: 2
+    airflowLength: 0.25
+    airflowAlpha: 0
+    groundFlowIntensity: 0
+    afterimageRate: 0
+    afterimageLifetime: 0.12
+    pressureConeIntensity: 0
+    windVolume: 0
+    windPitch: 0.94
+    impactFeedbackMultiplier: 0.9
+    environmentResponseStrength: 0
+    fovBonus: 1.5
+    ambientShake: 0
+    chargeLean: 0
+  - primaryColor: {r: 0.32, g: 0.76, b: 1, a: 1}
+    secondaryColor: {r: 0.62, g: 0.9, b: 1, a: 1}
+    trailLength: 1
+    trailWidth: 0.11
+    trailBrightness: 0.82
+    particleEmissionRate: 6
+    speedLineIntensity: 0.15
+    characterEnergyIntensity: 0.35
+    uiColor: {r: 0.32, g: 0.76, b: 1, a: 1}
+    airflowEmission: 0
+    airflowSpeed: 2
+    airflowLength: 0.25
+    airflowAlpha: 0
+    groundFlowIntensity: 0
+    afterimageRate: 0
+    afterimageLifetime: 0.12
+    pressureConeIntensity: 0
+    windVolume: 0
+    windPitch: 0.94
+    impactFeedbackMultiplier: 0.9
+    environmentResponseStrength: 0
+    fovBonus: 3.5
+    ambientShake: 0
+    chargeLean: 0
+  - primaryColor: {r: 0.06, g: 0.48, b: 1, a: 1}
+    secondaryColor: {r: 0.28, g: 0.8, b: 1, a: 1}
+    trailLength: 1.4
+    trailWidth: 0.15
+    trailBrightness: 1
+    particleEmissionRate: 10
+    speedLineIntensity: 0.25
+    characterEnergyIntensity: 0.55
+    uiColor: {r: 0.06, g: 0.48, b: 1, a: 1}
+    airflowEmission: 0.6942148
+    airflowSpeed: 2.8181818
+    airflowLength: 0.48181817
+    airflowAlpha: 0.06545454
+    groundFlowIntensity: 0.090909086
+    afterimageRate: 0
+    afterimageLifetime: 0.13090909
+    pressureConeIntensity: 0
+    windVolume: 0.016769346
+    windPitch: 0.96
+    impactFeedbackMultiplier: 0.93636364
+    environmentResponseStrength: 0.090909086
+    fovBonus: 6
+    ambientShake: 0.002
+    chargeLean: 3
+  - primaryColor: {r: 0.72, g: 0.4, b: 1, a: 1}
+    secondaryColor: {r: 0.9, g: 0.68, b: 1, a: 1}
+    trailLength: 1.9
+    trailWidth: 0.2
+    trailBrightness: 1.15
+    particleEmissionRate: 14
+    speedLineIntensity: 0.35
+    characterEnergyIntensity: 0.75
+    uiColor: {r: 0.72, g: 0.4, b: 1, a: 1}
+    airflowEmission: 2.5174565
+    airflowSpeed: 3.9870129
+    airflowLength: 0.81298697
+    airflowAlpha: 0.15896104
+    groundFlowIntensity: 0.22077921
+    afterimageRate: 0
+    afterimageLifetime: 0.14649351
+    pressureConeIntensity: 0
+    windVolume: 0.08978926
+    windPitch: 0.9885714
+    impactFeedbackMultiplier: 0.98831165
+    environmentResponseStrength: 0.22077921
+    fovBonus: 8
+    ambientShake: 0.004
+    chargeLean: 4.5
+  - primaryColor: {r: 0.58, g: 0.08, b: 1, a: 1}
+    secondaryColor: {r: 0.88, g: 0.38, b: 1, a: 1}
+    trailLength: 2.4
+    trailWidth: 0.25
+    trailBrightness: 1.35
+    particleEmissionRate: 19
+    speedLineIntensity: 0.48
+    characterEnergyIntensity: 1
+    uiColor: {r: 0.58, g: 0.08, b: 1, a: 1}
+    airflowEmission: 6.350143
+    airflowSpeed: 5.5064936
+    airflowLength: 1.2435064
+    airflowAlpha: 0.2805195
+    groundFlowIntensity: 0.38961038
+    afterimageRate: 0
+    afterimageLifetime: 0.16675325
+    pressureConeIntensity: 0
+    windVolume: 0.2427163
+    windPitch: 1.0257143
+    impactFeedbackMultiplier: 1.0558441
+    environmentResponseStrength: 0.38961038
+    fovBonus: 10
+    ambientShake: 0.007
+    chargeLean: 6
+  - primaryColor: {r: 1, g: 0.78, b: 0.28, a: 1}
+    secondaryColor: {r: 1, g: 0.94, b: 0.58, a: 1}
+    trailLength: 3
+    trailWidth: 0.3
+    trailBrightness: 1.5
+    particleEmissionRate: 24
+    speedLineIntensity: 0.6
+    characterEnergyIntensity: 1.2
+    uiColor: {r: 1, g: 0.78, b: 0.28, a: 1}
+    airflowEmission: 11.355372
+    airflowSpeed: 6.909091
+    airflowLength: 1.6409091
+    airflowAlpha: 0.3927273
+    groundFlowIntensity: 0.54545456
+    afterimageRate: 0.8509095
+    afterimageLifetime: 0.18545455
+    pressureConeIntensity: 0
+    windVolume: 0.4089557
+    windPitch: 1.06
+    impactFeedbackMultiplier: 1.1181818
+    environmentResponseStrength: 0.54545456
+    fovBonus: 12.5
+    ambientShake: 0.01
+    chargeLean: 8
+  - primaryColor: {r: 1, g: 0.55, b: 0.02, a: 1}
+    secondaryColor: {r: 1, g: 0.86, b: 0.24, a: 1}
+    trailLength: 3.6
+    trailWidth: 0.35
+    trailBrightness: 1.65
+    particleEmissionRate: 29
+    speedLineIntensity: 0.72
+    characterEnergyIntensity: 1.4
+    uiColor: {r: 1, g: 0.55, b: 0.02, a: 1}
+    airflowEmission: 17.769272
+    airflowSpeed: 8.311689
+    airflowLength: 2.0383117
+    airflowAlpha: 0.50493515
+    groundFlowIntensity: 0.7012988
+    afterimageRate: 2.8768842
+    afterimageLifetime: 0.20415585
+    pressureConeIntensity: 0.21394414
+    windVolume: 0.5656568
+    windPitch: 1.0942857
+    impactFeedbackMultiplier: 1.1805195
+    environmentResponseStrength: 0.7012988
+    fovBonus: 15
+    ambientShake: 0.014
+    chargeLean: 10
+  - primaryColor: {r: 1, g: 0.1, b: 0.05, a: 1}
+    secondaryColor: {r: 1, g: 0.38, b: 0.08, a: 1}
+    trailLength: 4.2
+    trailWidth: 0.4
+    trailBrightness: 1.8
+    particleEmissionRate: 34
+    speedLineIntensity: 0.82
+    characterEnergyIntensity: 1.6
+    uiColor: {r: 1, g: 0.1, b: 0.05, a: 1}
+    airflowEmission: 24.19025
+    airflowSpeed: 9.480519
+    airflowLength: 2.3694804
+    airflowAlpha: 0.5984416
+    groundFlowIntensity: 0.83116883
+    afterimageRate: 4.565195
+    afterimageLifetime: 0.21974026
+    pressureConeIntensity: 0.55570745
+    windVolume: 0.6653612
+    windPitch: 1.1228571
+    impactFeedbackMultiplier: 1.2324675
+    environmentResponseStrength: 0.83116883
+    fovBonus: 18
+    ambientShake: 0.018
+    chargeLean: 12
+  - primaryColor: {r: 1, g: 0.16, b: 0.02, a: 1}
+    secondaryColor: {r: 1, g: 0.82, b: 0.08, a: 1}
+    trailLength: 5
+    trailWidth: 0.48
+    trailBrightness: 2.1
+    particleEmissionRate: 42
+    speedLineIntensity: 0.95
+    characterEnergyIntensity: 2
+    uiColor: {r: 1, g: 0.16, b: 0.02, a: 1}
+    airflowEmission: 34
+    airflowSpeed: 11
+    airflowLength: 2.8
+    airflowAlpha: 0.72
+    groundFlowIntensity: 1
+    afterimageRate: 6.76
+    afterimageLifetime: 0.24
+    pressureConeIntensity: 1
+    windVolume: 0.72
+    windPitch: 1.16
+    impactFeedbackMultiplier: 1.3
+    environmentResponseStrength: 1
+    fovBonus: 21
+    ambientShake: 0.024
+    chargeLean: 14
