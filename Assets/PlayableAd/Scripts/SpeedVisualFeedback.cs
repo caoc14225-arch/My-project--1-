@@ -36,6 +36,13 @@ namespace PlayableAd
         private float[] ringScales;
         private Color[] ringColors;
         private int nextRing;
+        private LineRenderer[] sonicBoomRings;
+        private float[] sonicRingTimers;
+        private float[] sonicRingDurations;
+        private float[] sonicRingScales;
+        private float[] sonicRingAlphas;
+        private int nextSonicRing;
+        private Transform sonicBoomPoolRoot;
         private Color currentPrimary;
         private Color currentSecondary;
         private float currentTrailLength;
@@ -46,7 +53,6 @@ namespace PlayableAd
         private float currentEmission;
         private float currentAirflowEmission;
         private float currentAirflowSpeed;
-        private float currentAirflowLength;
         private float currentAirflowAlpha;
         private float currentGroundFlow;
         private float currentAfterimageRate;
@@ -62,6 +68,7 @@ namespace PlayableAd
         private float accelerationAuraTimer;
         private float lastContinuousSpeed = 1f;
         private int currentLevel = 1;
+        private float animationTime;
 
         public float CurrentFovBonus => currentFovBonus;
         public float CurrentAmbientShake => currentAmbientShake;
@@ -72,6 +79,14 @@ namespace PlayableAd
         public float CurrentWindVolume => currentWindVolume;
         public float CurrentWindPitch => currentWindPitch;
         public float CurrentImpactMultiplier => currentImpactMultiplier;
+
+        private void Update()
+        {
+            float worldDeltaTime = BulletTimeManager.Instance != null
+                ? BulletTimeManager.Instance.GetWorldDeltaTime()
+                : Time.deltaTime;
+            UpdateSonicBoomRings(worldDeltaTime);
+        }
 
         public void Initialize(SpeedVisualProfile visualProfile, VisualPerformanceSettings performanceSettings)
         {
@@ -94,7 +109,6 @@ namespace PlayableAd
             currentEmission = initial.particleEmissionRate;
             currentAirflowEmission = initial.airflowEmission;
             currentAirflowSpeed = initial.airflowSpeed;
-            currentAirflowLength = initial.airflowLength;
             currentAirflowAlpha = initial.airflowAlpha;
             currentGroundFlow = initial.groundFlowIntensity;
             currentAfterimageRate = initial.afterimageRate;
@@ -129,12 +143,25 @@ namespace PlayableAd
             BuildExternalSpeedVfx(windTrailPrefab, smokeTrailPrefab, accelerationAuraPrefab);
         }
 
+        // Compatibility overload used by the pre-animation local gameplay controller.
+        public void UpdateFeedback(int level, float forwardSpeed, float worldDeltaTime)
+        {
+            UpdateFeedback(0f, level, forwardSpeed, worldDeltaTime);
+        }
+
         public void UpdateFeedback(float continuousSpeed, int level, float forwardSpeed, float unscaledDeltaTime)
         {
             if (profile == null) return;
             currentLevel = Mathf.Clamp(level, 1, profile.LevelCount);
             SpeedTierVisualData target = profile.Get(currentLevel);
-            float response = 1f - Mathf.Exp(-unscaledDeltaTime / Mathf.Max(0.01f, profile.tierTransitionDuration));
+            // Visual effects belong to the simulated world, so they use the same local
+            // delta time as movement while touch/UI input remains unscaled elsewhere.
+            float worldDeltaTime = BulletTimeManager.Instance != null
+                ? BulletTimeManager.Instance.GetWorldDeltaTime()
+                : unscaledDeltaTime;
+            worldDeltaTime = Mathf.Max(0f, worldDeltaTime);
+            animationTime += worldDeltaTime;
+            float response = 1f - Mathf.Exp(-worldDeltaTime / Mathf.Max(0.01f, profile.tierTransitionDuration));
 
             currentPrimary = Color.Lerp(currentPrimary, target.primaryColor, response);
             currentSecondary = Color.Lerp(currentSecondary, target.secondaryColor, response);
@@ -146,7 +173,6 @@ namespace PlayableAd
             currentEmission = Mathf.Lerp(currentEmission, target.particleEmissionRate, response);
             currentAirflowEmission = Mathf.Lerp(currentAirflowEmission, target.airflowEmission, response);
             currentAirflowSpeed = Mathf.Lerp(currentAirflowSpeed, target.airflowSpeed, response);
-            currentAirflowLength = Mathf.Lerp(currentAirflowLength, target.airflowLength, response);
             currentAirflowAlpha = Mathf.Lerp(currentAirflowAlpha, target.airflowAlpha, response);
             currentGroundFlow = Mathf.Lerp(currentGroundFlow, target.groundFlowIntensity, response);
             currentAfterimageRate = Mathf.Lerp(currentAfterimageRate, target.afterimageRate, response);
@@ -158,7 +184,7 @@ namespace PlayableAd
             currentFovBonus = Mathf.Lerp(currentFovBonus, target.fovBonus, response);
             currentAmbientShake = Mathf.Lerp(currentAmbientShake, target.ambientShake, response);
             currentChargeLean = Mathf.Lerp(currentChargeLean, target.chargeLean, response);
-            temporaryBoost = Mathf.MoveTowards(temporaryBoost, 0f, unscaledDeltaTime * 3.4f);
+            temporaryBoost = Mathf.MoveTowards(temporaryBoost, 0f, worldDeltaTime * 3.4f);
 
             float speedDelta = continuousSpeed - lastContinuousSpeed;
             if (speedDelta > 0.001f)
@@ -186,13 +212,19 @@ namespace PlayableAd
             emission.rateOverTime = currentEmission * qualityMultiplier;
             ParticleSystem.MainModule main = auraParticles.main;
             main.startColor = new ParticleSystem.MinMaxGradient(currentPrimary, currentSecondary);
+            main.simulationSpeed = worldScale;
 
             UpdateLayeredAirflow(qualityMultiplier);
             UpdateAfterimages(unscaledDeltaTime);
             UpdateExternalSpeedVfx(forwardSpeed, continuousSpeed, unscaledDeltaTime);
 
             UpdateEdgeLines(forwardSpeed);
-            UpdateLevelUpRings(unscaledDeltaTime);
+            UpdateLevelUpRings(worldDeltaTime);
+            if (levelBurstParticles != null)
+            {
+                ParticleSystem.MainModule burstMain = levelBurstParticles.main;
+                burstMain.simulationSpeed = worldScale;
+            }
         }
 
         public void PlayLevelUpBurst(int level, SpeedLevelFeedbackData feedback, Color color, float strength,
@@ -216,6 +248,20 @@ namespace PlayableAd
             ringScales[index] = feedback.shockwaveScale * strength;
             ringColors[index] = new Color(color.r, color.g, color.b, reducedFlash ? 0.38f : 0.66f);
             levelUpRings[index].enabled = true;
+            PlaySonicBoomRing(
+                Mathf.Clamp(feedback.shockwaveDuration * 0.72f, 0.15f, 0.24f),
+                Mathf.Clamp(feedback.shockwaveScale * strength * 2.15f, 2.4f, 5.4f),
+                reducedFlash ? 0.32f : 0.5f);
+        }
+
+        public void PlayHighSpeedImpactSonicBoom(int speedLevel, float strength = 1f,
+            bool reducedFlash = false)
+        {
+            if (speedLevel < 9) return;
+            float levelT = Mathf.InverseLerp(9f, 10f, Mathf.Clamp(speedLevel, 9, 10));
+            float scale = Mathf.Lerp(4.6f, 5.4f, levelT) * Mathf.Clamp(strength, 0.75f, 1.35f);
+            PlaySonicBoomRing(Mathf.Lerp(0.16f, 0.19f, levelT),
+                Mathf.Clamp(scale, 2.4f, 6.2f), reducedFlash ? 0.32f : 0.5f);
         }
 
         public void Pulse(float strength)
@@ -544,6 +590,9 @@ namespace PlayableAd
             ParticleSystem.EmissionModule airflowEmission = airflowParticles.emission;
             airflowEmission.rateOverTime = currentAirflowEmission * qualityMultiplier * profile.highSpeedEffectIntensity;
             ParticleSystem.MainModule airflowMain = airflowParticles.main;
+            airflowMain.simulationSpeed = BulletTimeManager.Instance != null
+                ? BulletTimeManager.Instance.WorldTimeScale
+                : 1f;
             Color airflowColor = currentPrimary;
             airflowColor.a = currentAirflowAlpha;
             airflowMain.startColor = new ParticleSystem.MinMaxGradient(airflowColor, currentSecondary);
@@ -552,6 +601,9 @@ namespace PlayableAd
             ParticleSystem.EmissionModule groundEmission = groundFlowParticles.emission;
             groundEmission.rateOverTime = currentGroundFlow * 22f * qualityMultiplier;
             ParticleSystem.MainModule groundMain = groundFlowParticles.main;
+            groundMain.simulationSpeed = BulletTimeManager.Instance != null
+                ? BulletTimeManager.Instance.WorldTimeScale
+                : 1f;
             Color groundColor = currentSecondary;
             groundColor.a = currentGroundFlow * 0.48f;
             groundMain.startColor = groundColor;
@@ -678,15 +730,73 @@ namespace PlayableAd
                 ring.enabled = false;
                 levelUpRings[i] = ring;
             }
+
+            BuildSonicBoomPool(Mathf.Clamp(count * 2, 4, 8), material);
         }
 
-        private void UpdateLevelUpRings(float unscaledDeltaTime)
+        private void BuildSonicBoomPool(int count, Material material)
+        {
+            sonicBoomPoolRoot = new GameObject("SpeedLevelUpVFX_SonicBoomPool").transform;
+            sonicBoomPoolRoot.SetParent(transform.parent, false);
+            sonicBoomRings = new LineRenderer[count];
+            sonicRingTimers = new float[count];
+            sonicRingDurations = new float[count];
+            sonicRingScales = new float[count];
+            sonicRingAlphas = new float[count];
+            const int segments = 40;
+            for (int i = 0; i < count; i++)
+            {
+                GameObject ringObject = new GameObject("SpeedLevelUpVFX_SonicBoomRing_" + i);
+                ringObject.transform.SetParent(sonicBoomPoolRoot, false);
+                LineRenderer ring = ringObject.AddComponent<LineRenderer>();
+                ring.useWorldSpace = false;
+                ring.loop = true;
+                ring.positionCount = segments;
+                ring.sharedMaterial = material;
+                ring.startWidth = 0.28f;
+                ring.endWidth = 0.28f;
+                ring.numCornerVertices = 3;
+                ring.numCapVertices = 2;
+                for (int p = 0; p < segments; p++)
+                {
+                    float angle = p / (float)segments * Mathf.PI * 2f;
+                    ring.SetPosition(p, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f));
+                }
+                ring.enabled = false;
+                sonicBoomRings[i] = ring;
+            }
+        }
+
+        private void PlaySonicBoomRing(float duration, float scale, float alpha)
+        {
+            if (sonicBoomRings == null || sonicBoomRings.Length == 0) return;
+            int index = nextSonicRing++ % sonicBoomRings.Length;
+            LineRenderer ring = sonicBoomRings[index];
+            Transform ringTransform = ring.transform;
+            Vector3 forward = transform.forward.sqrMagnitude > 0.001f ? transform.forward : Vector3.forward;
+            ringTransform.SetPositionAndRotation(
+                transform.position + Vector3.up * 0.7f + forward * 0.85f,
+                Quaternion.LookRotation(forward, Vector3.up));
+            ringTransform.localScale = Vector3.one * 0.28f;
+            sonicRingTimers[index] = 0.0001f;
+            sonicRingDurations[index] = Mathf.Max(0.01f, duration);
+            sonicRingScales[index] = Mathf.Max(0.28f, scale);
+            sonicRingAlphas[index] = Mathf.Clamp01(alpha);
+            Color initialColor = new Color(1f, 1f, 1f, sonicRingAlphas[index]);
+            ring.startColor = initialColor;
+            ring.endColor = initialColor;
+            ring.startWidth = 0.28f;
+            ring.endWidth = 0.28f;
+            ring.enabled = true;
+        }
+
+        private void UpdateLevelUpRings(float worldDeltaTime)
         {
             if (levelUpRings == null) return;
             for (int i = 0; i < levelUpRings.Length; i++)
             {
                 if (ringTimers[i] <= 0f) continue;
-                ringTimers[i] += unscaledDeltaTime;
+                ringTimers[i] += worldDeltaTime;
                 float t = Mathf.Clamp01(ringTimers[i] / Mathf.Max(0.01f, ringDurations[i]));
                 levelUpRings[i].transform.localScale = Vector3.one * Mathf.Lerp(0.12f, ringScales[i], 1f - Mathf.Pow(1f - t, 2f));
                 Color color = ringColors[i];
@@ -701,10 +811,35 @@ namespace PlayableAd
             }
         }
 
+        private void UpdateSonicBoomRings(float worldDeltaTime)
+        {
+            if (sonicBoomRings == null) return;
+            for (int i = 0; i < sonicBoomRings.Length; i++)
+            {
+                if (sonicRingTimers[i] <= 0f) continue;
+                sonicRingTimers[i] += worldDeltaTime;
+                float t = Mathf.Clamp01(sonicRingTimers[i] / Mathf.Max(0.01f, sonicRingDurations[i]));
+                float expansion = 1f - Mathf.Pow(1f - t, 3f);
+                LineRenderer ring = sonicBoomRings[i];
+                ring.transform.localScale = Vector3.one * Mathf.Lerp(0.28f, sonicRingScales[i], expansion);
+                float alpha = sonicRingAlphas[i] * (1f - Mathf.SmoothStep(0.08f, 1f, t));
+                Color color = new Color(1f, 1f, 1f, alpha);
+                ring.startColor = color;
+                ring.endColor = color;
+                ring.startWidth = Mathf.Lerp(0.28f, 0.1f, t);
+                ring.endWidth = ring.startWidth;
+                if (t >= 1f)
+                {
+                    sonicRingTimers[i] = 0f;
+                    ring.enabled = false;
+                }
+            }
+        }
+
         private void UpdateEdgeLines(float forwardSpeed)
         {
             bool visible = performance.enableSecondarySpeedLines && !performance.lowQualityMode && currentLevel >= 4;
-            float timeOffset = Time.time * Mathf.Max(1f, forwardSpeed) * 1.8f;
+            float timeOffset = animationTime * Mathf.Max(1f, forwardSpeed) * 1.8f;
             for (int i = 0; i < edgeLines.Length; i++)
             {
                 LineRenderer line = edgeLines[i];
@@ -728,6 +863,13 @@ namespace PlayableAd
         private static Color MultiplyRgb(Color color, float multiplier)
         {
             return new Color(color.r * multiplier, color.g * multiplier, color.b * multiplier, color.a);
+        }
+
+        private void OnDestroy()
+        {
+            if (sonicBoomPoolRoot == null) return;
+            if (Application.isPlaying) Destroy(sonicBoomPoolRoot.gameObject);
+            else DestroyImmediate(sonicBoomPoolRoot.gameObject);
         }
     }
 }
