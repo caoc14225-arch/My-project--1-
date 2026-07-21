@@ -223,7 +223,9 @@ namespace PlayableAd.EditorTools
 
             var serializedGame = new SerializedObject(game);
             SerializedProperty visualProperty = serializedGame.FindProperty("playerVisualPrefab");
+            SerializedProperty animatorProperty = serializedGame.FindProperty("playerAnimator");
             visualProperty.objectReferenceValue = prefab;
+            animatorProperty.objectReferenceValue = controller;
             serializedGame.ApplyModifiedPropertiesWithoutUndo();
             EditorUtility.SetDirty(game);
 

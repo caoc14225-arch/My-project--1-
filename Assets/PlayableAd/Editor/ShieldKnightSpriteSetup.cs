@@ -4,13 +4,10 @@ using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.Animations;
-using UnityEditor.SceneManagement;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 namespace PlayableAd.Editor
 {
-    [InitializeOnLoad]
     public static class ShieldKnightSpriteSetup
     {
         private const string RawPath = "Assets/PlayableAd/Visuals/PlayerSprite/Source/ShieldKnight_Raw.png";
@@ -20,8 +17,6 @@ namespace PlayableAd.Editor
         private const string AnimationFolder = "Assets/PlayableAd/Visuals/PlayerSprite/Animations";
         private const string ControllerPath = AnimationFolder + "/ShieldKnightSprite.controller";
         private const string PrefabPath = "Assets/PlayableAd/Visuals/PlayerSprite/ShieldKnightSpriteVisual.prefab";
-        private const string ScenePath = "Assets/Scenes/SampleScene.unity";
-        private const string SessionKey = "PlayableAd.ShieldKnightSpriteSetup.20260720.v2";
         private const int GridSize = 8;
         private const int ActiveRows = 5;
         private const float FramesPerSecond = 12f;
@@ -30,12 +25,6 @@ namespace PlayableAd.Editor
         {
             "Run", "MoveLeft", "MoveRight", "ShieldCharge", "FallGray"
         };
-
-        static ShieldKnightSpriteSetup()
-        {
-            if (!SessionState.GetBool(SessionKey, false) && File.Exists(RawPath))
-                EditorApplication.delayCall += AutoBuild;
-        }
 
         [MenuItem("Playable Ad/Build Shield Knight Sprite")]
         public static void Build()
@@ -67,29 +56,9 @@ namespace PlayableAd.Editor
             Sprite shadow = AssetDatabase.LoadAssetAtPath<Sprite>(ShadowPath);
             if (shadow == null) throw new InvalidOperationException("Ground shadow sprite failed to import.");
             GameObject prefab = CreateVisualPrefab(controller, sprites["ShieldKnight_Run_00"], shadow);
-            UpdateMainScene(prefab);
 
-            SessionState.SetBool(SessionKey, true);
             Debug.Log("Shield Knight sprite setup completed. " + audit);
             Selection.activeObject = prefab;
-        }
-
-        private static void AutoBuild()
-        {
-            if (EditorApplication.isCompiling || EditorApplication.isUpdating)
-            {
-                EditorApplication.delayCall += AutoBuild;
-                return;
-            }
-
-            try
-            {
-                Build();
-            }
-            catch (Exception exception)
-            {
-                Debug.LogException(exception);
-            }
         }
 
         private static SpriteSheetAudit ProcessSpriteSheet()
@@ -624,21 +593,6 @@ namespace PlayableAd.Editor
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(root, PrefabPath);
             UnityEngine.Object.DestroyImmediate(root);
             return prefab;
-        }
-
-        private static void UpdateMainScene(GameObject prefab)
-        {
-            Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
-            PlayableAdGame game = UnityEngine.Object.FindObjectOfType<PlayableAdGame>();
-            if (game == null) throw new InvalidOperationException("PlayableAdGame not found in " + ScenePath);
-            var serializedGame = new SerializedObject(game);
-            SerializedProperty property = serializedGame.FindProperty("playerVisualPrefab");
-            if (property == null) throw new InvalidOperationException("playerVisualPrefab field not found");
-            property.objectReferenceValue = prefab;
-            serializedGame.ApplyModifiedPropertiesWithoutUndo();
-            EditorUtility.SetDirty(game);
-            EditorSceneManager.MarkSceneDirty(scene);
-            EditorSceneManager.SaveScene(scene);
         }
 
         private static void EnsureFolder(string path)

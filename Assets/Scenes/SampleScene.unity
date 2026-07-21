@@ -830,7 +830,7 @@ MonoBehaviour:
     dangerPreviewGlobalCooldown: 0.65
     movementSmoothing: 12
   playerVisualPrefab: {fileID: 8725690435934047917, guid: 1d58f706c1a9cae41a4cc87807e6067d, type: 3}
-  playerAnimator: {fileID: 0}
+  playerAnimator: {fileID: 9100000, guid: 29c6e402430dee7459a1e92c833f3f01, type: 2}
   tier1SoldierPrefab: {fileID: 7456086963729349228, guid: b9ec7e44c7039c54bb05fb06a812a4ce, type: 3}
   tier4SoldierPrefab: {fileID: 3356697127791251490, guid: 9482cbbdf3aae5c4e9ae23fc7e8bd1e5, type: 3}
   tier1SoldierBreakPrefab: {fileID: 4526551921959352974, guid: 18edcb8c064de434891c2decf873a8d5, type: 3}
