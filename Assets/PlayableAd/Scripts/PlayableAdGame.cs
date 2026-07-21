@@ -342,6 +342,7 @@ namespace PlayableAd
         private PlayerSpeedController speedController;
         private PlayerForwardMotionController forwardMotion;
         private Animator runnerAnimator;
+        private PlayerSpriteVisualController runnerSpriteVisual;
         private RunFlowController flowController;
         private float targetX;
         private float elapsed;
@@ -451,6 +452,7 @@ namespace PlayableAd
             targetX = 0f;
             callout = string.Empty;
             calloutUntil = 0f;
+            runnerSpriteVisual?.ResetVisualState();
         }
 
         public void BeginGameplay()
@@ -467,6 +469,7 @@ namespace PlayableAd
             targetX = 0f;
             flowController.StartTutorial();
             dragging = false;
+            runnerSpriteVisual?.ResetVisualState();
         }
 
         public void StartTutorial()
@@ -691,10 +694,15 @@ namespace PlayableAd
             float forwardSpeed = forwardMotion != null
                 ? forwardMotion.Tick(worldDeltaTime, true)
                 : speedController.GetForwardSpeed();
+            float previousX = runner.position.x;
             float x = dragging
                 ? targetX
-                : Mathf.MoveTowards(runner.position.x, targetX, tuning.lateralSpeed * Time.deltaTime);
-            runner.position = new Vector3(x, runner.position.y, runner.position.z + forwardSpeed * worldDeltaTime);
+                : Mathf.MoveTowards(previousX, targetX, tuning.lateralSpeed * Time.deltaTime);
+            runner.position = new Vector3(x, runner.position.y, runner.position.z + forwardSpeed * Time.deltaTime);
+            float lateralInput = Time.deltaTime > 0f
+                ? (x - previousX) / (tuning.lateralSpeed * Time.deltaTime)
+                : 0f;
+            runnerSpriteVisual?.SetHorizontalInput(lateralInput);
 
             if (FormalStarted && !bossSequence && tuning.forwardSpeedLossEnabled && !IsInsideBossSpeedProtectionZone())
             {
@@ -729,11 +737,12 @@ namespace PlayableAd
                 runnerVisual.localRotation = Quaternion.Euler(lean + chargeLean * actualNormalized, 0f, 0f);
             }
 
-            if (runnerAnimator != null)
-            {
-                float worldScale = BulletTimeManager.Instance != null ? BulletTimeManager.Instance.WorldTimeScale : 1f;
-                runnerAnimator.speed = movementActive ? Mathf.Lerp(0.9f, 1.65f, actualNormalized) * worldScale : 0f;
-            }
+            if (runnerSpriteVisual != null)
+                runnerSpriteVisual.SetMovement(actualNormalized, movementActive);
+            else if (runnerAnimator != null)
+                runnerAnimator.speed = movementActive ? Mathf.Lerp(0.8f, 1.4f, actualNormalized) : 0f;
+            if (!movementActive)
+                runnerSpriteVisual?.SetHorizontalInput(0f);
 
             if (speedFeedback != null)
             {
@@ -839,6 +848,8 @@ namespace PlayableAd
                         && dz <= GetForwardSpeed() * wallBreakPresentation.anticipationDuration)
                     {
                         encounter.anticipated = true;
+                        runnerSpriteVisual?.PlayShieldCharge(Mathf.Max(0.72f,
+                            wallBreakPresentation.anticipationDuration + 0.15f));
                         fovPunchOffset = -wallBreakPresentation.fovAnticipation;
                         speedFeedback?.Pulse(0.45f);
                     }
@@ -1023,6 +1034,7 @@ namespace PlayableAd
 
         private void HitTarget(Encounter encounter)
         {
+            runnerSpriteVisual?.PlayShieldCharge(0.72f);
             float speedBeforeImpact = speedController.CurrentSpeed;
             ObstacleResolutionType resolution = ResolveObstacle(encounter);
             if (resolution == ObstacleResolutionType.Boosted)
@@ -1224,6 +1236,10 @@ namespace PlayableAd
             callout = string.Empty;
             calloutUntil = elapsed;
             bossClashVisual.Begin(wins);
+            runnerSpriteVisual?.PlayShieldCharge(
+                bossClashPresentation.approachDuration +
+                bossClashPresentation.contactDuration +
+                bossClashPresentation.struggleDuration);
 
             Vector3 runnerStart = runner.position;
             Vector3 bossStart = boss.position;
@@ -1340,6 +1356,7 @@ namespace PlayableAd
 
         private IEnumerator BossFinishFailure()
         {
+            runnerSpriteVisual?.SetFallen(true);
             audioFeedback?.PlayBossFailure();
             flashAlpha = Mathf.Max(flashAlpha, 0.22f);
             PunchCamera(0.18f, bossClashPresentation.contactShake * 0.7f, 1.5f);
@@ -1372,6 +1389,7 @@ namespace PlayableAd
             }
 
             runnerVisual.localRotation = Quaternion.identity;
+            runnerSpriteVisual?.SetFallen(false);
             boss.position = new Vector3(0f, 1.5f, tuning.bossDistance + 2.5f);
             boss.rotation = Quaternion.identity;
             fallbackActive = true;
@@ -1627,6 +1645,8 @@ namespace PlayableAd
             replaceable.Build(playerVisualPrefab, playerAnimator, PrimitiveType.Cylinder, new Color(0.12f, 0.45f, 0.85f), new Vector3(0.8f, 1f, 0.8f));
             runnerVisual = replaceable.VisualRoot;
             runnerAnimator = replaceable.Animator;
+            runnerSpriteVisual = replaceable.GetComponentInChildren<PlayerSpriteVisualController>(true);
+            runnerSpriteVisual?.ResetVisualState();
 
             speedFeedback = root.AddComponent<SpeedVisualFeedback>();
             speedFeedback.Initialize(speedVisualProfile, visualPerformance);
