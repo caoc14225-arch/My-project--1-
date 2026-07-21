@@ -14,8 +14,10 @@ namespace PlayableAd
         [Header("Velocity（速度）")]
         [Range(2f, 12f), InspectorName("Min Fragment Force（最小碎片力度）")] public float minFragmentForce = 4.5f;
         [Range(4f, 18f), InspectorName("Max Fragment Force（最大碎片力度）")] public float maxFragmentForce = 10.5f;
+        [Min(1f), InspectorName("Forward Speed Multiplier（前向速度倍率）")] public float forwardSpeedMultiplier = 1.25f;
+        [Min(0f), InspectorName("High Speed Multiplier Bonus（高速前向倍率加成）")] public float highSpeedMultiplierBonus = 0.85f;
+        [Min(0f), InspectorName("Lateral Range Per Speed Level（每级横向区间增量）")] public float lateralRangePerSpeedLevel = 1f;
         [Range(1f, 8f), InspectorName("Upward Force（向上力度）")] public float upwardForce = 4.2f;
-        [Range(0.5f, 7f), InspectorName("Lateral Spread（横向散布）")] public float lateralSpread = 3.2f;
         [Range(1f, 12f), InspectorName("Min Angular Velocity（最小角速度）")] public float minAngularVelocity = 4f;
         [Range(4f, 24f), InspectorName("Max Angular Velocity（最大角速度）")] public float maxAngularVelocity = 14f;
         [Range(0.1f, 1f), InspectorName("Low Quality Fragment Multiplier（低画质碎片倍率）")] public float lowQualityFragmentMultiplier = 0.55f;
@@ -67,7 +69,14 @@ namespace PlayableAd
         }
 
         public void PlayBreak(Vector3 position, Vector3 sourceDimensions, Color color,
-            float normalizedActualSpeed, float preferredSide)
+            float normalizedActualSpeed, float impactForwardSpeed)
+        {
+            int inferredSpeedLevel = Mathf.Clamp(Mathf.RoundToInt(normalizedActualSpeed * 9f) + 1, 1, 10);
+            PlayBreak(position, sourceDimensions, color, normalizedActualSpeed, impactForwardSpeed, inferredSpeedLevel);
+        }
+
+        public void PlayBreak(Vector3 position, Vector3 sourceDimensions, Color color,
+            float normalizedActualSpeed, float impactForwardSpeed, int speedLevel)
         {
             if (fragments.Length == 0 || settings == null) return;
 
@@ -77,14 +86,17 @@ namespace PlayableAd
             int count = Mathf.Clamp(requested, 3, 6);
             float speedT = Mathf.Clamp01(normalizedActualSpeed);
             float forwardForce = Mathf.Lerp(settings.minFragmentForce, settings.maxFragmentForce, speedT);
+            float impactSpeedMultiplier = Mathf.Max(1f, settings.forwardSpeedMultiplier)
+                + settings.highSpeedMultiplierBonus * speedT;
+            float boostedForwardForce = Mathf.Max(forwardForce,
+                Mathf.Max(0f, impactForwardSpeed) * impactSpeedMultiplier);
             float angularForce = Mathf.Lerp(settings.minAngularVelocity, settings.maxAngularVelocity, speedT);
-            float sideSign = Mathf.Abs(preferredSide) > 0.05f ? Mathf.Sign(preferredSide) : ((launchSequence & 1u) == 0u ? -1f : 1f);
+            float lateralRange = Mathf.Clamp(speedLevel, 1, 10) * settings.lateralRangePerSpeedLevel;
 
             for (int i = 0; i < count; i++)
             {
                 Fragment fragment = GetNextFragment();
                 float horizontalSlot = count <= 1 ? 0f : i / (float)(count - 1) - 0.5f;
-                float side = horizontalSlot * 2f + sideSign * 0.18f;
                 Vector3 localOffset = new Vector3(
                     horizontalSlot * sourceDimensions.x * 0.42f,
                     ((i & 1) == 0 ? 0.2f : 0.68f) * sourceDimensions.y,
@@ -103,10 +115,11 @@ namespace PlayableAd
 
                 fragment.body.isKinematic = false;
                 fragment.body.useGravity = true;
+                float lateralMomentum = UnityEngine.Random.Range(-lateralRange, lateralRange);
                 fragment.body.velocity = new Vector3(
-                    side * settings.lateralSpread * UnityEngine.Random.Range(0.72f, 1.08f),
+                    lateralMomentum,
                     settings.upwardForce * UnityEngine.Random.Range(0.8f, 1.18f),
-                    forwardForce * UnityEngine.Random.Range(0.86f, 1.12f));
+                    boostedForwardForce * UnityEngine.Random.Range(1f, 1.08f));
                 fragment.body.angularVelocity = UnityEngine.Random.onUnitSphere * angularForce;
                 fragment.body.WakeUp();
                 fragment.remaining = settings.fragmentLifetime * UnityEngine.Random.Range(0.88f, 1.08f);

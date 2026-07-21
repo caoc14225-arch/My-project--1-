@@ -667,8 +667,10 @@ MonoBehaviour:
     fragmentLifetime: 1.35
     minFragmentForce: 4.5
     maxFragmentForce: 10.5
+    forwardSpeedMultiplier: 1.25
+    highSpeedMultiplierBonus: 0.85
+    lateralRangePerSpeedLevel: 0.7
     upwardForce: 4.2
-    lateralSpread: 3.2
     minAngularVelocity: 4
     maxAngularVelocity: 14
     lowQualityFragmentMultiplier: 0.55

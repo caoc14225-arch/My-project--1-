@@ -10138,11 +10138,15 @@ MonoBehaviour:
   - {fileID: 3700966666790945463}
   - {fileID: 4140735183326419458}
   forwardForce: 8
-  sideForce: 2.4
-  upwardForce: 3.6
+  speedForwardBonus: 8
+  forwardSpeedMultiplier: 1.25
+  highSpeedMultiplierBonus: 0.85
+  lateralRangePerSpeedLevel: 1
+  fallRecycleHeight: 3
+  upwardForce: 6.2
   torque: 11
-  gravityMultiplier: 1
-  fragmentLifetime: 0.8
+  gravityMultiplier: 1.15
+  fragmentLifetime: 1.35
   fadeDuration: 0.22
   fragmentScaleRange: {x: 0.86, y: 1.05}
 --- !u!1 &6198290484588764550

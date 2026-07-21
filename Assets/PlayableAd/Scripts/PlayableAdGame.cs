@@ -1082,6 +1082,7 @@ namespace PlayableAd
             }
             lastImpactTime = Time.unscaledTime;
             float normalizedActualSpeed = forwardMotion != null ? forwardMotion.NormalizedActualSpeed : 0f;
+            float impactForwardSpeed = forwardMotion != null ? forwardMotion.CurrentForwardSpeed : GetForwardSpeed();
             audioFeedback?.PlayCollisionOutcome(outcome, comboPitchIndex, impactPresentation.comboPitchStep,
                 normalizedActualSpeed, encounter.root.transform.position);
             flashAlpha = Mathf.Max(flashAlpha, impactPresentation.normalFlash * strength);
@@ -1110,12 +1111,12 @@ namespace PlayableAd
                 Vector3 breakPosition = encounter.root.transform.position
                     - Vector3.up * encounter.root.transform.lossyScale.y * 0.5f;
                 usedSoldierBreak = soldierBreakPool.PlayBreak(encounter.tier, breakPosition,
-                    encounter.root.transform.rotation, normalizedActualSpeed, side);
+                    encounter.root.transform.rotation, normalizedActualSpeed, impactForwardSpeed, CurrentTier);
             }
             if (!usedSoldierBreak)
             {
                 enemyBreakPool?.PlayBreak(encounter.root.transform.position, sourceDimensions, breakColor,
-                    normalizedActualSpeed, side);
+                    normalizedActualSpeed, impactForwardSpeed, CurrentTier);
             }
             encounter.root.SetActive(false);
 

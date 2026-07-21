@@ -9,7 +9,11 @@ namespace PlayableAd
         [SerializeField, InspectorName("Fragments（碎片刚体）")] private Rigidbody[] fragments;
         [SerializeField, InspectorName("Particles（粒子系统）")] private ParticleSystem[] particles;
         [SerializeField, Min(0f), InspectorName("Forward Force（前向力度）")] private float forwardForce = 7f;
-        [SerializeField, Min(0f), InspectorName("Side Force（侧向力度）")] private float sideForce = 2.2f;
+        [SerializeField, Min(0f), InspectorName("Speed Forward Bonus（速度前向加成）")] private float speedForwardBonus = 7f;
+        [SerializeField, Min(1f), InspectorName("Forward Speed Multiplier（前向速度倍率）")] private float forwardSpeedMultiplier = 1.25f;
+        [SerializeField, Min(0f), InspectorName("High Speed Multiplier Bonus（高速前向倍率加成）")] private float highSpeedMultiplierBonus = 0.85f;
+        [SerializeField, Min(0f), InspectorName("Lateral Range Per Speed Level（每级横向区间增量）")] private float lateralRangePerSpeedLevel = 1f;
+        [SerializeField, Min(0f), InspectorName("Fall Recycle Height（坠落回收高度）")] private float fallRecycleHeight = 3f;
         [SerializeField, Min(0f), InspectorName("Upward Force（向上力度）")] private float upwardForce = 3.4f;
         [SerializeField, Min(0f), InspectorName("Torque（扭矩）")] private float torque = 9f;
         [SerializeField, Min(0f), InspectorName("Gravity Multiplier（重力倍率）")] private float gravityMultiplier = 1f;
@@ -49,7 +53,8 @@ namespace PlayableAd
             }
         }
 
-        public void Play(Vector3 position, Quaternion rotation, float normalizedSpeed, float preferredSide, uint playSequence)
+        public void Play(Vector3 position, Quaternion rotation, float normalizedSpeed, float impactForwardSpeed,
+            int speedLevel, uint playSequence)
         {
             gameObject.SetActive(true);
             transform.SetPositionAndRotation(position, rotation);
@@ -57,8 +62,12 @@ namespace PlayableAd
             sequence = playSequence;
             remaining = fragmentLifetime;
             int count = Mathf.Min(fragmentCount, fragments.Length);
-            float speedScale = Mathf.Lerp(0.88f, 1.12f, Mathf.Clamp01(normalizedSpeed));
-            float sideBias = Mathf.Abs(preferredSide) > 0.05f ? Mathf.Sign(preferredSide) : 1f;
+            float speedT = Mathf.Clamp01(normalizedSpeed);
+            float authoredForwardSpeed = forwardForce * 0.65f + speedForwardBonus * speedT;
+            float impactSpeedMultiplier = Mathf.Max(1f, forwardSpeedMultiplier) + highSpeedMultiplierBonus * speedT;
+            float minimumForwardSpeed = Mathf.Max(0f, impactForwardSpeed) * impactSpeedMultiplier;
+            float forwardSpeed = Mathf.Max(authoredForwardSpeed, minimumForwardSpeed);
+            float lateralRange = Mathf.Clamp(speedLevel, 1, 10) * lateralRangePerSpeedLevel;
 
             for (int i = 0; i < fragments.Length; i++)
             {
@@ -72,9 +81,9 @@ namespace PlayableAd
                 body.isKinematic = true;
                 body.useGravity = false;
                 body.detectCollisions = false;
-                float lane = count <= 1 ? 0f : i / (float)(count - 1) * 2f - 1f;
-                velocities[i] = transform.forward * forwardForce * speedScale * Random.Range(0.88f, 1.08f)
-                    + transform.right * sideForce * (lane + sideBias * 0.16f)
+                float lateralMomentum = Random.Range(-lateralRange, lateralRange);
+                velocities[i] = Vector3.right * lateralMomentum
+                    + Vector3.forward * forwardSpeed * Random.Range(1f, 1.08f)
                     + Vector3.up * upwardForce * Random.Range(0.72f, 1.12f);
                 angularVelocities[i] = Random.onUnitSphere * torque * Random.Range(0.7f, 1.15f) * Mathf.Rad2Deg;
             }
@@ -106,6 +115,13 @@ namespace PlayableAd
                 velocities[i] += Physics.gravity * gravityMultiplier * worldDeltaTime;
                 fragments[i].transform.position += velocities[i] * worldDeltaTime;
                 fragments[i].transform.Rotate(angularVelocities[i] * worldDeltaTime, Space.Self);
+                if (fragments[i].transform.position.y <= -fallRecycleHeight)
+                {
+                    fragments[i].gameObject.SetActive(false);
+                    velocities[i] = Vector3.zero;
+                    angularVelocities[i] = Vector3.zero;
+                    continue;
+                }
                 if (remaining <= fadeDuration)
                 {
                     float scale = Mathf.Clamp01(remaining / Mathf.Max(0.01f, fadeDuration));
@@ -121,8 +137,6 @@ namespace PlayableAd
             for (int i = 0; i < fragments.Length; i++)
             {
                 Rigidbody body = fragments[i];
-                body.velocity = Vector3.zero;
-                body.angularVelocity = Vector3.zero;
                 body.useGravity = false;
                 body.isKinematic = true;
                 body.detectCollisions = false;

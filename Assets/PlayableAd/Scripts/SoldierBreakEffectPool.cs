@@ -22,7 +22,8 @@ namespace PlayableAd
             tier4Effects = BuildPool(tier4Prefab, Mathf.Max(1, tier4Capacity), "Tier4Break");
         }
 
-        public bool PlayBreak(int tier, Vector3 position, Quaternion rotation, float normalizedSpeed, float preferredSide)
+        public bool PlayBreak(int tier, Vector3 position, Quaternion rotation, float normalizedSpeed,
+            float impactForwardSpeed, int speedLevel)
         {
             SoldierBreakEffect[] pool = tier == 1 ? tier1Effects : tier == 4 ? tier4Effects : null;
             if (pool == null || pool.Length == 0)
@@ -43,7 +44,7 @@ namespace PlayableAd
             SoldierBreakEffect effect = tier == 1
                 ? GetNext(pool, ref tier1Cursor)
                 : GetNext(pool, ref tier4Cursor);
-            effect.Play(position, rotation, normalizedSpeed, preferredSide, ++playSequence);
+            effect.Play(position, rotation, normalizedSpeed, impactForwardSpeed, speedLevel, ++playSequence);
             return true;
         }
 
