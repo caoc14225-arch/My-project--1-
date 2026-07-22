@@ -359,12 +359,12 @@ MonoBehaviour:
     tutorialWallBlockingMode: 1
     tutorialWallBulletTime:
       enabled: 1
-      triggerDistance: 3
-      duration: 1
+      triggerDistance: 6
+      duration: 1.5
       worldTimeScale: 0.25
       enterDuration: 0.2
       exitDuration: 0.15
-    tutorialExitSpeedLevel: 2
+    tutorialExitSpeedLevel: 1
     stoneWallSafeSpeedLevel: 7
     stoneWallSpeedPenaltyLevels: 0.5
     forwardSpeedLossEnabled: 1
@@ -373,6 +373,7 @@ MonoBehaviour:
     thirdSectionSpeedLossPerSecond: 0
     minimumSpeedAfterLoss: 1
     bossDistance: 500
+    bossMaxSpeedElixirDistance: 30
     bossApproachPadding: 13.46154
     proceduralSeed: 41723
     recycleDistance: 18
@@ -564,6 +565,10 @@ MonoBehaviour:
       minimumForwardSpacing: 0.5
       horizontalCoverage: 1
       forwardRandomness: 0.8
+    openingElixirLeftPrefab: {fileID: 1151182611365112421, guid: 0e49f95b60b380e49948d35af3ce12ac, type: 3}
+    openingElixirCenterPrefab: {fileID: 8845805036743922893, guid: 98fb66b9a8fefa849b72a5d26234df8d, type: 3}
+    openingElixirRightPrefab: {fileID: 3063697393485650908, guid: 63be2ee730e8ee9408a653d747662e65, type: 3}
+    bossMaxSpeedElixirPrefab: {fileID: 5026541447367235291, guid: 25a2198feda15374f95449c0bcfc5fe2, type: 3}
     stoneWallPrefab: {fileID: 3591384800296594540, guid: f2bbdaf3c4f0ea7429c22cf3770c71f3, type: 3}
     additionalStoneWalls:
     - sectionName: StoneWall_1
@@ -822,7 +827,7 @@ MonoBehaviour:
     startingLevel: 1
     tutorialElixirTargetLevel: 5
     logSpeedChanges: 0
-    levelOneSoldierBoost: 0.06
+    levelOneSoldierBoost: 0.08
     normalImpactBoost: 0.9
     bossVictoryLevel: 10
   autoBeginGameplay: 1
@@ -855,8 +860,8 @@ MonoBehaviour:
     fogEnd: 125
   portraitCamera:
     fieldOfView: 52
-    cameraHeight: 5
-    cameraBackDistance: 9.95
+    cameraHeight: 10
+    cameraBackDistance: 16
     cameraLookAhead: 18
     maxSpeedFovBonus: 4
   targetShapes:
@@ -920,7 +925,7 @@ MonoBehaviour:
     energyReturnDuration: 0.38
     scatterRadius: 0.62
   soldierKnockbackPresentation:
-    maxActiveSoldiers: 16
+    maxActiveSoldiers: 24
     flightLifetime: 1.6
     minimumForwardSpeed: 8
     maximumAuthoredForwardSpeed: 16
@@ -1019,7 +1024,7 @@ MonoBehaviour:
   playerAnimator: {fileID: 9100000, guid: 29c6e402430dee7459a1e92c833f3f01, type: 2}
   tier1SoldierPrefab: {fileID: 7456086963729349228, guid: b9ec7e44c7039c54bb05fb06a812a4ce, type: 3}
   tier4SoldierPrefab: {fileID: 3356697127791251490, guid: 9482cbbdf3aae5c4e9ae23fc7e8bd1e5, type: 3}
-  tier1TargetHeight: 1.6
+  tier1TargetHeight: 2.2
   tier4TargetHeight: 2.2
   bossVisualPrefab: {fileID: 149562205207687934, guid: 057acc745e872a147bae28cce3392f7f, type: 3}
   bossAnimator: {fileID: 9100000, guid: 22ad2da203527ab4bb0f0626944cf1cc, type: 2}

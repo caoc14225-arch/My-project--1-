@@ -13,6 +13,9 @@ namespace PlayableAd
         private const float FirstSpeedLossSectionEndZ = 150f;
         private const float SecondSpeedLossSectionEndZ = 350f;
         private const int OpeningElixirGroupId = 1;
+        private const int MainRunLowSpeedRecoveryLevel = 4;
+        private const float ElixirVisualTargetHeight = 1.45f;
+        private const float ElixirVisualBottomOffset = -0.72f;
         private static readonly Color SpeedLossImpactColor = new Color(0.82f, 0.035f, 0.025f, 0.76f);
         private const float RoadBorderSourceSegmentLength = 6.012f;
         private const float RoadBorderSegmentScale = 4f;
@@ -76,6 +79,12 @@ namespace PlayableAd
             [Header("Soldier section modules（士兵区段模块）")]
             [InspectorName("Soldier Sections（士兵区段）")] public SoldierFormationSettings[] soldierSections = Array.Empty<SoldierFormationSettings>();
 
+            [Header("Elixir visual modules（药剂视觉模块）")]
+            [InspectorName("Tutorial Left Elixir - Bottle 8（教学左路药剂 - Bottle 8）")] public GameObject openingElixirLeftPrefab;
+            [InspectorName("Tutorial Center Elixir - Bottle 9（教学中路药剂 - Bottle 9）")] public GameObject openingElixirCenterPrefab;
+            [InspectorName("Tutorial Right Elixir - Bottle 10（教学右路药剂 - Bottle 10）")] public GameObject openingElixirRightPrefab;
+            [InspectorName("Boss Max Speed Elixir - Bottle 4（Boss前满速药剂 - Bottle 4）")] public GameObject bossMaxSpeedElixirPrefab;
+
             [Header("Stone wall modules（石墙模块）")]
             [InspectorName("Stone Wall Prefab（石墙预制体）")] public GameObject stoneWallPrefab;
             [InspectorName("Additional Stone Walls（额外石墙区段）")] public StoneWallSectionSettings[] additionalStoneWalls = Array.Empty<StoneWallSectionSettings>();
@@ -124,6 +133,8 @@ namespace PlayableAd
             [Header("Course（路线）")]
             [Tooltip("Total world-space distance from the start to the Boss encounter.")]
             [Min(20f), InspectorName("Boss Distance（Boss 距离）")] public float bossDistance = 500f;
+            [Min(0f), InspectorName("Boss Max Speed Elixir Distance（Boss前满速药剂距离）")]
+            public float bossMaxSpeedElixirDistance = 30f;
             [Header("Data-driven Main Run（数据驱动主流程）")]
             [Min(10f), InspectorName("Boss Approach Padding（Boss 接近缓冲）")] public float bossApproachPadding = 13.46154f;
             [InspectorName("Procedural Seed（程序化随机种子）")] public int proceduralSeed = 41723;
@@ -388,8 +399,11 @@ namespace PlayableAd
         private GUIStyle buttonStyle;
         private GUIStyle smashTitleStyle;
         private GUIStyle smashSubtitleStyle;
+        private GUIStyle tutorialBulletWarningStyle;
+        private GUIStyle tutorialBulletWarningShadowStyle;
         private float smashEffectStart;
         private float smashEffectUntil;
+        private bool tutorialBulletTimeWarningActive;
         private LineRenderer upgradeRing;
         private float lastImpactTime;
         private float lastNormalShakeTime;
@@ -469,6 +483,7 @@ namespace PlayableAd
             targetX = 0f;
             callout = string.Empty;
             calloutUntil = 0f;
+            tutorialBulletTimeWarningActive = false;
             runnerSpriteVisual?.ResetVisualState();
         }
 
@@ -487,6 +502,7 @@ namespace PlayableAd
             targetX = 0f;
             flowController.StartTutorial();
             CancelDrag();
+            tutorialBulletTimeWarningActive = false;
             runnerSpriteVisual?.ResetVisualState();
         }
 
@@ -501,6 +517,7 @@ namespace PlayableAd
             HandleSpeedDebugInput();
 #endif
             flashAlpha = Mathf.MoveTowards(flashAlpha, 0f, Time.unscaledDeltaTime * 3.8f);
+            UpdateTutorialBulletTimeWarningState();
             bool movementActive = gameplayStarted && !ending && flowController != null && flowController.IsGameplayActive && Time.timeScale > 0f;
             if (!movementActive)
             {
@@ -526,6 +543,7 @@ namespace PlayableAd
             {
                 MoveRunner();
                 ProcessEncounters();
+                RecoverFromLevelOneAfterTutorial();
                 CheckBossEntry();
             }
 
@@ -780,6 +798,17 @@ namespace PlayableAd
             return Mathf.Max(0f, tuning.thirdSectionSpeedLossPerSecond);
         }
 
+        private void RecoverFromLevelOneAfterTutorial()
+        {
+            if (!FormalStarted || speedController == null || speedController.GetCurrentLevel() > 1) return;
+
+            int recoveryLevel = Mathf.Min(MainRunLowSpeedRecoveryLevel, speedController.MaxLevel);
+            if (recoveryLevel <= 1) return;
+
+            speedController.SetLevel(recoveryLevel, SpeedChangeReason.SpecialReward, this);
+            forwardMotion?.SnapToTarget();
+        }
+
         private float GetForwardSpeed()
         {
             return forwardMotion != null ? forwardMotion.CurrentForwardSpeed : speedController != null ? speedController.GetForwardSpeed() : playerSpeed.forwardSpeeds[0];
@@ -972,7 +1001,25 @@ namespace PlayableAd
 
             if (distanceToWall > encounter.bulletTimeSettings.triggerDistance) return;
             encounter.bulletTimeTriggered = true;
-            BulletTimeManager.Instance?.StartBulletTime(encounter.bulletTimeSettings);
+            BulletTimeManager manager = BulletTimeManager.Instance;
+            manager?.StartBulletTime(encounter.bulletTimeSettings);
+
+            if (!encounter.completesTutorial || manager == null || !manager.IsBulletTime()) return;
+
+            tutorialBulletTimeWarningActive = true;
+            callout = string.Empty;
+            calloutUntil = elapsed;
+            smashEffectStart = 0f;
+            smashEffectUntil = 0f;
+        }
+
+        private void UpdateTutorialBulletTimeWarningState()
+        {
+            if (!tutorialBulletTimeWarningActive) return;
+
+            BulletTimeManager manager = BulletTimeManager.Instance;
+            if (manager == null || !manager.IsBulletTime())
+                tutorialBulletTimeWarningActive = false;
         }
 
         private bool ValidatePrefabModules()
@@ -1439,7 +1486,6 @@ namespace PlayableAd
 
         private IEnumerator FallbackSequence()
         {
-            speedController.DropOneLevel(SpeedChangeReason.BossEvent, this);
             Vector3 from = runner.position;
             Vector3 to = new Vector3(0f, runner.position.y, tuning.bossDistance - 58f * CourseDistanceScale);
             float timer = 0f;
@@ -1454,6 +1500,8 @@ namespace PlayableAd
 
             runnerVisual.localRotation = Quaternion.identity;
             runnerSpriteVisual?.SetFallen(false);
+            speedController.SetLevel(speedController.MaxLevel, SpeedChangeReason.BossEvent, this);
+            forwardMotion?.SnapToTarget();
             boss.position = new Vector3(0f, BossStandingY, tuning.bossDistance + 2.5f);
             boss.rotation = Quaternion.identity;
             callout = "TRY AGAIN!";
@@ -1658,8 +1706,8 @@ namespace PlayableAd
                 CreateDecorationBox("RoadBand", new Vector3(0f, -0.02f, z), new Vector3(8.4f, 0.04f, 0.16f), environment.routeMarkColor, worldRoot);
                 if (!hasAuthoredRoadBorders)
                 {
-                    CreateDecorationBox("TorchLeft", new Vector3(-4.05f, 1.1f, z + 4f), new Vector3(0.25f, 2.2f, 0.25f), environment.timberColor, worldRoot);
-                    CreateDecorationBox("TorchRight", new Vector3(4.05f, 1.1f, z + 4f), new Vector3(0.25f, 2.2f, 0.25f), environment.timberColor, worldRoot);
+                    CreateDecorationBox("TorchLeft", new Vector3(-4.05f, 1.1f, z + 2.5f), new Vector3(0.25f, 2.2f, 0.25f), environment.timberColor, worldRoot);
+                    CreateDecorationBox("TorchRight", new Vector3(4.05f, 1.1f, z + 2.5f), new Vector3(0.25f, 2.2f, 0.25f), environment.timberColor, worldRoot);
                 }
             }
 
@@ -1886,11 +1934,14 @@ namespace PlayableAd
             float safeHalfWidth = Mathf.Max(0.5f, tuning.laneHalfWidth - 0.35f);
             float openingLaneOffset = GetSoldierLaneCenter(SoldierPlacementMode.RightLaneLine, safeHalfWidth);
             CreateElixir(-openingLaneOffset, openingElixirZ,
-                playerSpeed.tutorialElixirTargetLevel, OpeningElixirGroupId);
+                playerSpeed.tutorialElixirTargetLevel, OpeningElixirGroupId,
+                prefab != null ? prefab.openingElixirLeftPrefab : null);
             CreateElixir(0f, openingElixirZ,
-                playerSpeed.tutorialElixirTargetLevel, OpeningElixirGroupId);
+                playerSpeed.tutorialElixirTargetLevel, OpeningElixirGroupId,
+                prefab != null ? prefab.openingElixirCenterPrefab : null);
             CreateElixir(openingLaneOffset, openingElixirZ,
-                playerSpeed.tutorialElixirTargetLevel, OpeningElixirGroupId);
+                playerSpeed.tutorialElixirTargetLevel, OpeningElixirGroupId,
+                prefab != null ? prefab.openingElixirRightPrefab : null);
 
             float firstSoldierZ = openingElixirZ + tuning.tutorialFirstSoldierGap;
             int soldierCount = Mathf.Clamp(tuning.tutorialSoldierCount, 3, 5);
@@ -1903,6 +1954,12 @@ namespace PlayableAd
             CreateBreakableWall(wallZ, "TutorialStoneWall", tuning.tutorialWallBlockingMode,
                 tuning.tutorialWallBulletTime, true);
             BuildConfiguredMainRun(wallZ);
+
+            float bossElixirZ = Mathf.Max(0f,
+                tuning.bossDistance - Mathf.Max(0f, tuning.bossMaxSpeedElixirDistance));
+            CreateElixir(0f, bossElixirZ, speedController.MaxLevel, 0,
+                prefab != null ? prefab.bossMaxSpeedElixirPrefab : null,
+                "BossMaxSpeedElixir");
         }
 
         private void BuildConfiguredMainRun(float tutorialEndZ)
@@ -2147,32 +2204,21 @@ namespace PlayableAd
         }
 
         private void CreateElixir(float x, float z, int targetLevel = 0,
-            int exclusivePickupGroupId = 0)
+            int exclusivePickupGroupId = 0, GameObject visualPrefab = null,
+            string objectNameOverride = null)
         {
             int resolvedTargetLevel = targetLevel > 0 ? Mathf.Clamp(targetLevel, 1, speedController.MaxLevel) : playerSpeed.tutorialElixirTargetLevel;
-            string objectName = "RoyalElixir";
-            if (exclusivePickupGroupId > 0)
+            string objectName = !string.IsNullOrEmpty(objectNameOverride)
+                ? objectNameOverride
+                : "RoyalElixir";
+            if (exclusivePickupGroupId > 0 && string.IsNullOrEmpty(objectNameOverride))
                 objectName = x < -0.01f ? "OpeningElixir_Left"
                     : x > 0.01f ? "OpeningElixir_Right" : "OpeningElixir_Center";
             GameObject root = new GameObject(objectName);
             root.transform.SetParent(worldRoot, false);
             root.transform.position = new Vector3(x, 0.9f, z);
 
-            GameObject bottle = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-            bottle.transform.SetParent(root.transform, false);
-            bottle.transform.localScale = new Vector3(0.42f, 0.72f, 0.42f);
-            SpeedTierVisualData elixirTier = speedVisualProfile.Get(resolvedTargetLevel);
-            bottle.GetComponent<Renderer>().sharedMaterial = RuntimeStyle.CreateMaterial(elixirTier.primaryColor, 0.15f, 0.9f);
-            Destroy(bottle.GetComponent<Collider>());
-
-            GameObject cap = GameObject.CreatePrimitive(PrimitiveType.Cube);
-            cap.transform.SetParent(root.transform, false);
-            cap.transform.localPosition = new Vector3(0f, 0.85f, 0f);
-            cap.transform.localScale = new Vector3(0.32f, 0.2f, 0.32f);
-            cap.GetComponent<Renderer>().sharedMaterial = RuntimeStyle.CreateMaterial(elixirTier.secondaryColor, 0.4f, 0.8f);
-            Destroy(cap.GetComponent<Collider>());
-
-            Renderer[] renderers = { bottle.GetComponent<Renderer>(), cap.GetComponent<Renderer>() };
+            Renderer[] renderers = CreateElixirVisual(root, visualPrefab, resolvedTargetLevel);
             root.AddComponent<ElixirVisual>().Initialize(elixirPresentation, renderers, speedVisualProfile, resolvedTargetLevel);
             SphereCollider pickupCollider = root.AddComponent<SphereCollider>();
             pickupCollider.isTrigger = true;
@@ -2188,6 +2234,68 @@ namespace PlayableAd
                 elixir = pickup
             });
             root.SetActive(false);
+        }
+
+        private Renderer[] CreateElixirVisual(GameObject root, GameObject visualPrefab, int targetLevel)
+        {
+            if (visualPrefab != null)
+            {
+                GameObject visual = Instantiate(visualPrefab, root.transform, false);
+                visual.name = visualPrefab.name;
+                Collider[] visualColliders = visual.GetComponentsInChildren<Collider>(true);
+                for (int i = 0; i < visualColliders.Length; i++) visualColliders[i].enabled = false;
+
+                Rigidbody[] visualBodies = visual.GetComponentsInChildren<Rigidbody>(true);
+                for (int i = 0; i < visualBodies.Length; i++)
+                {
+                    visualBodies[i].isKinematic = true;
+                    visualBodies[i].detectCollisions = false;
+                }
+
+                Renderer[] importedRenderers = visual.GetComponentsInChildren<Renderer>(true);
+                if (importedRenderers.Length > 0)
+                {
+                    FitElixirVisual(root.transform, visual.transform, importedRenderers);
+                    return importedRenderers;
+                }
+
+                Destroy(visual);
+            }
+
+            return CreateProceduralElixirVisual(root, targetLevel);
+        }
+
+        private static void FitElixirVisual(Transform root, Transform visual, Renderer[] renderers)
+        {
+            Bounds bounds = CalculateRendererBounds(renderers);
+            float scaleFactor = ElixirVisualTargetHeight / Mathf.Max(0.001f, bounds.size.y);
+            visual.localScale *= scaleFactor;
+
+            bounds = CalculateRendererBounds(renderers);
+            Vector3 rootPosition = root.position;
+            visual.position += new Vector3(
+                rootPosition.x - bounds.center.x,
+                rootPosition.y + ElixirVisualBottomOffset - bounds.min.y,
+                rootPosition.z - bounds.center.z);
+        }
+
+        private Renderer[] CreateProceduralElixirVisual(GameObject root, int targetLevel)
+        {
+            GameObject bottle = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+            bottle.transform.SetParent(root.transform, false);
+            bottle.transform.localScale = new Vector3(0.42f, 0.72f, 0.42f);
+            SpeedTierVisualData elixirTier = speedVisualProfile.Get(targetLevel);
+            bottle.GetComponent<Renderer>().sharedMaterial = RuntimeStyle.CreateMaterial(elixirTier.primaryColor, 0.15f, 0.9f);
+            Destroy(bottle.GetComponent<Collider>());
+
+            GameObject cap = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            cap.transform.SetParent(root.transform, false);
+            cap.transform.localPosition = new Vector3(0f, 0.85f, 0f);
+            cap.transform.localScale = new Vector3(0.32f, 0.2f, 0.32f);
+            cap.GetComponent<Renderer>().sharedMaterial = RuntimeStyle.CreateMaterial(elixirTier.secondaryColor, 0.4f, 0.8f);
+            Destroy(cap.GetComponent<Collider>());
+
+            return new[] { bottle.GetComponent<Renderer>(), cap.GetComponent<Renderer>() };
         }
 
         private void CreateBreakableWall(float z, string objectName = "TutorialStoneWall",
@@ -2324,7 +2432,15 @@ namespace PlayableAd
             }
 #endif
 
-            if (!ending && elapsed < calloutUntil)
+            BulletTimeManager bulletTimeManager = BulletTimeManager.Instance;
+            bool showTutorialBulletWarning = tutorialBulletTimeWarningActive
+                && bulletTimeManager != null
+                && bulletTimeManager.IsBulletTime();
+            if (showTutorialBulletWarning)
+            {
+                DrawTutorialBulletTimeWarning(width, height);
+            }
+            else if (!ending && elapsed < calloutUntil)
             {
                 if (callout == "撞！\n速度↑")
                 {
@@ -2398,8 +2514,47 @@ namespace PlayableAd
             GUI.color = previousColor;
         }
 
+        private void DrawTutorialBulletTimeWarning(float width, float height)
+        {
+            const string warning = "还撞不碎这个！";
+            float pulse = 1f + Mathf.Sin(Time.unscaledTime * Mathf.PI * 6.4f) * 0.1f;
+            tutorialBulletWarningStyle.fontSize = Mathf.RoundToInt(58f * pulse);
+            tutorialBulletWarningShadowStyle.fontSize = tutorialBulletWarningStyle.fontSize;
+
+            float labelWidth = width * 0.94f;
+            float centerX = width * 0.5f + 18f;
+            float centerY = height * 0.4f;
+            Rect labelRect = new Rect(centerX - labelWidth * 0.5f, centerY - 43f, labelWidth, 86f);
+
+            const float outlineOffset = 2.5f;
+            GUI.Label(new Rect(labelRect.x - outlineOffset, labelRect.y, labelRect.width, labelRect.height),
+                warning, tutorialBulletWarningShadowStyle);
+            GUI.Label(new Rect(labelRect.x + outlineOffset, labelRect.y, labelRect.width, labelRect.height),
+                warning, tutorialBulletWarningShadowStyle);
+            GUI.Label(new Rect(labelRect.x, labelRect.y - outlineOffset, labelRect.width, labelRect.height),
+                warning, tutorialBulletWarningShadowStyle);
+            GUI.Label(new Rect(labelRect.x, labelRect.y + outlineOffset, labelRect.width, labelRect.height),
+                warning, tutorialBulletWarningShadowStyle);
+            GUI.Label(labelRect, warning, tutorialBulletWarningStyle);
+        }
+
         private void EnsureGuiStyles()
         {
+            if (tutorialBulletWarningStyle == null || tutorialBulletWarningShadowStyle == null)
+            {
+                tutorialBulletWarningStyle = new GUIStyle(GUI.skin.label)
+                {
+                    alignment = TextAnchor.MiddleCenter,
+                    fontSize = 58,
+                    fontStyle = FontStyle.Bold,
+                    normal = { textColor = new Color(1f, 0.06f, 0.025f) }
+                };
+                tutorialBulletWarningShadowStyle = new GUIStyle(tutorialBulletWarningStyle)
+                {
+                    normal = { textColor = new Color(0.22f, 0f, 0f, 0.96f) }
+                };
+            }
+
             if (titleStyle != null)
             {
                 return;
