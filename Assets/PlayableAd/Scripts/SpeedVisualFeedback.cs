@@ -11,9 +11,25 @@ namespace PlayableAd
         private LineRenderer[] edgeLines;
         private float[] lineSeeds;
         private ParticleSystem auraParticles;
-        private ParticleSystem airflowParticles;
+        private TrailRenderer[] airflowTrails;
+        private Material airflowMaterial;
+        private Gradient mainAirflowGradient;
+        private Gradient coreAirflowGradient;
+        private Gradient sideAirflowGradient;
+        private int airflowGradientStage = -1;
+        private Texture2D airflowTexture;
         private ParticleSystem groundFlowParticles;
         private LineRenderer pressureCone;
+        private Transform frontImpactAirflowRoot;
+        private SpriteRenderer frontImpactShock;
+        private SpriteRenderer frontImpactLeft;
+        private SpriteRenderer frontImpactRight;
+        private SpriteRenderer frontImpactWrapLeft;
+        private SpriteRenderer frontImpactWrapRight;
+        private SpriteRenderer frontImpactCore;
+        private Sprite[] frontImpactPlumeSprites;
+        private Sprite[] frontImpactShockSprites;
+        private Texture2D frontImpactAirflowAtlas;
         private LineRenderer[] afterimages;
         private float[] afterimageTimers;
         private float afterimageSpawnTimer;
@@ -33,11 +49,13 @@ namespace PlayableAd
         private float[] ringScales;
         private Color[] ringColors;
         private int nextRing;
-        private LineRenderer[] sonicBoomRings;
+        private SpriteRenderer[] sonicBoomRings;
+        private Sprite[] sonicBoomSprites;
         private float[] sonicRingTimers;
         private float[] sonicRingDurations;
         private float[] sonicRingScales;
         private float[] sonicRingAlphas;
+        private Color[] sonicRingColors;
         private int nextSonicRing;
         private Transform sonicBoomPoolRoot;
         private Color currentPrimary;
@@ -66,6 +84,7 @@ namespace PlayableAd
         private float lastContinuousSpeed = 1f;
         private int currentLevel = 1;
         private float animationTime;
+        private bool runningTrailsVisible = true;
 
         public float CurrentFovBonus => currentFovBonus;
         public float CurrentAmbientShake => currentAmbientShake;
@@ -131,9 +150,10 @@ namespace PlayableAd
             energyTrail.enabled = true;
 
             BuildAuraParticles();
-            BuildAirflowParticles();
+            BuildAirflowTrail();
             BuildGroundFlowParticles();
             BuildPressureCone();
+            BuildFrontImpactAirflow();
             BuildAfterimagePool();
             BuildEdgeLinePool();
             BuildLevelUpPool();
@@ -193,28 +213,35 @@ namespace PlayableAd
                 accelerationAuraTimer = Mathf.MoveTowards(accelerationAuraTimer, 0f, worldDeltaTime);
             lastContinuousSpeed = continuousSpeed;
 
-            mainTrail.time = currentTrailLength / Mathf.Max(1f, forwardSpeed * worldScale);
-            mainTrail.startWidth = currentTrailWidth;
-            Color trailColor = MultiplyRgb(currentPrimary, currentBrightness);
-            mainTrail.startColor = new Color(trailColor.r, trailColor.g, trailColor.b, 0.92f);
-            mainTrail.endColor = new Color(currentSecondary.r, currentSecondary.g, currentSecondary.b, 0f);
+            float levelStrength = Mathf.InverseLerp(1f, 10f, currentLevel);
+            float stageIntensity = GetImpactStageIntensity(currentLevel);
+
+            float mainTrailLength = Mathf.Max(currentTrailLength * 0.72f,
+                Mathf.Lerp(1.6f, 4.7f, levelStrength) * stageIntensity);
+            mainTrail.time = mainTrailLength / Mathf.Max(1f, forwardSpeed * worldScale);
+            mainTrail.emitting = runningTrailsVisible && forwardSpeed > 0.1f;
+            mainTrail.startWidth = Mathf.Lerp(0.14f, 0.34f, levelStrength) * stageIntensity;
+            mainTrail.endWidth = Mathf.Lerp(0.025f, 0.065f, levelStrength);
+            EnsureAirflowGradients(currentLevel);
+            mainTrail.colorGradient = mainAirflowGradient;
 
             float energyLength = Mathf.Max(0.25f, currentTrailLength * 0.7f);
             energyTrail.SetPosition(0, new Vector3(0f, 0.3f, -0.1f));
             energyTrail.SetPosition(1, new Vector3(0f, 0.3f, -energyLength));
-            energyTrail.startWidth = currentTrailWidth * Mathf.Lerp(0.35f, 1.15f, Mathf.Clamp01(currentEnergyIntensity));
+            energyTrail.startWidth = Mathf.Lerp(0.08f, 0.22f, levelStrength) * stageIntensity;
             energyTrail.endWidth = 0f;
-            energyTrail.startColor = new Color(currentSecondary.r, currentSecondary.g, currentSecondary.b, Mathf.Clamp01(currentEnergyIntensity * 0.42f));
-            energyTrail.endColor = new Color(currentPrimary.r, currentPrimary.g, currentPrimary.b, 0f);
+            energyTrail.colorGradient = sideAirflowGradient;
+            energyTrail.enabled = runningTrailsVisible;
 
             ParticleSystem.EmissionModule emission = auraParticles.emission;
             float qualityMultiplier = performance.lowQualityMode ? performance.lowQualityParticleMultiplier : 1f;
-            emission.rateOverTime = currentEmission * qualityMultiplier;
+            emission.rateOverTime = runningTrailsVisible ? currentEmission * qualityMultiplier : 0f;
             ParticleSystem.MainModule main = auraParticles.main;
             main.startColor = new ParticleSystem.MinMaxGradient(currentPrimary, currentSecondary);
             main.simulationSpeed = worldScale;
 
-            UpdateLayeredAirflow(qualityMultiplier);
+            UpdateLayeredAirflow(qualityMultiplier, forwardSpeed, worldScale);
+            UpdateFrontImpactAirflow(forwardSpeed);
             UpdateAfterimages(worldDeltaTime);
             UpdateExternalSpeedVfx(forwardSpeed, continuousSpeed, worldDeltaTime, worldScale);
 
@@ -244,14 +271,14 @@ namespace PlayableAd
             if (levelUpRings == null || levelUpRings.Length == 0) return;
             int index = nextRing++ % levelUpRings.Length;
             ringTimers[index] = 0.0001f;
-            ringDurations[index] = feedback.shockwaveDuration;
+            ringDurations[index] = Mathf.Max(0.9f, feedback.shockwaveDuration * 2.4f);
             ringScales[index] = feedback.shockwaveScale * strength;
             ringColors[index] = new Color(color.r, color.g, color.b, reducedFlash ? 0.38f : 0.66f);
             levelUpRings[index].enabled = true;
             PlaySonicBoomRing(
                 Mathf.Clamp(feedback.shockwaveDuration * 0.72f, 0.15f, 0.24f),
                 Mathf.Clamp(feedback.shockwaveScale * strength * 2.15f, 2.4f, 5.4f),
-                reducedFlash ? 0.32f : 0.5f);
+                reducedFlash ? 0.32f : 0.5f, color);
         }
 
         public void PlayHighSpeedImpactSonicBoom(int speedLevel, float strength = 1f,
@@ -261,7 +288,8 @@ namespace PlayableAd
             float levelT = Mathf.InverseLerp(9f, 10f, Mathf.Clamp(speedLevel, 9, 10));
             float scale = Mathf.Lerp(4.6f, 5.4f, levelT) * Mathf.Clamp(strength, 0.75f, 1.35f);
             PlaySonicBoomRing(Mathf.Lerp(0.16f, 0.19f, levelT),
-                Mathf.Clamp(scale, 2.4f, 6.2f), reducedFlash ? 0.32f : 0.5f);
+                Mathf.Clamp(scale, 2.4f, 6.2f), reducedFlash ? 0.32f : 0.5f,
+                GetImpactStageColor(speedLevel));
         }
 
         public void Pulse(float strength)
@@ -280,11 +308,67 @@ namespace PlayableAd
             accelerationAuraTimer = Mathf.Max(accelerationAuraTimer, 0.72f);
         }
 
+public void SetRunningTrailsVisible(bool visible)
+        {
+            runningTrailsVisible = visible;
+            if (mainTrail != null)
+            {
+                mainTrail.emitting = visible;
+                if (!visible) mainTrail.Clear();
+            }
+
+            if (airflowTrails != null)
+            {
+                for (int i = 0; i < airflowTrails.Length; i++)
+                {
+                    if (airflowTrails[i] == null) continue;
+                    airflowTrails[i].emitting = visible;
+                    if (!visible) airflowTrails[i].Clear();
+                }
+            }
+
+            if (energyTrail != null) energyTrail.enabled = visible;
+            if (frontImpactAirflowRoot != null)
+                frontImpactAirflowRoot.gameObject.SetActive(visible && currentLevel >= 1);
+
+            if (auraParticles != null)
+            {
+                ParticleSystem.EmissionModule emission = auraParticles.emission;
+                emission.rateOverTime = visible
+                    ? currentEmission * (performance.lowQualityMode ? performance.lowQualityParticleMultiplier : 1f)
+                    : 0f;
+                if (visible) auraParticles.Play();
+                else auraParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+
+            if (groundFlowParticles != null)
+            {
+                ParticleSystem.EmissionModule emission = groundFlowParticles.emission;
+                emission.rateOverTime = visible ? currentGroundFlow * 22f : 0f;
+                if (visible) groundFlowParticles.Play();
+                else groundFlowParticles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            }
+
+            if (!visible)
+            {
+                if (pressureCone != null) pressureCone.enabled = false;
+                if (edgeLines != null)
+                    for (int i = 0; i < edgeLines.Length; i++) edgeLines[i].enabled = false;
+                if (afterimages != null)
+                    for (int i = 0; i < afterimages.Length; i++) afterimages[i].enabled = false;
+                SetExternalVfxActive(externalWindTrailRoot, externalWindTrailParticles, false);
+                SetExternalVfxActive(accelerationAuraRoot, accelerationAuraParticles, false);
+            }
+        }
+
+
         private void BuildExternalSpeedVfx(GameObject windTrailPrefab, GameObject auraPrefab)
         {
             externalWindTrailRoot = InstantiateExternalVfx(windTrailPrefab, "CFXR_RunWindTrail",
-                new Vector3(0f, -0.35f, -0.75f), Quaternion.identity, Vector3.one * 0.72f,
+                new Vector3(0f, -0.35f, -0.58f), Quaternion.identity,
+                new Vector3(0.46f, 0.46f, 0.52f),
                 out externalWindTrailParticles);
+            ConfigureExternalWindTrail();
             accelerationAuraRoot = InstantiateExternalVfx(auraPrefab, "CFXR_AccelerationRunicAura",
                 new Vector3(0f, -0.96f, 0f), Quaternion.identity, Vector3.one,
                 out accelerationAuraParticles);
@@ -308,6 +392,13 @@ namespace PlayableAd
         private void UpdateExternalSpeedVfx(float forwardSpeed, float continuousSpeed,
             float worldDeltaTime, float worldScale)
         {
+            if (!runningTrailsVisible)
+            {
+                SetExternalVfxActive(externalWindTrailRoot, externalWindTrailParticles, false);
+                SetExternalVfxActive(accelerationAuraRoot, accelerationAuraParticles, false);
+                return;
+            }
+
             float normalizedSpeed = Mathf.InverseLerp(1f, 10f, continuousSpeed);
             bool running = forwardSpeed > 0.1f;
             SetExternalVfxActive(externalWindTrailRoot, externalWindTrailParticles, running);
@@ -327,6 +418,18 @@ namespace PlayableAd
             SetParticleSimulationSpeed(externalWindTrailParticles, windSimulationSpeed * worldScale);
             SetParticleSimulationSpeed(accelerationAuraParticles,
                 Mathf.Lerp(0.9f, 1.35f, normalizedSpeed) * worldScale);
+        }
+
+        private void ConfigureExternalWindTrail()
+        {
+            for (int i = 0; i < externalWindTrailParticles.Length; i++)
+            {
+                ParticleSystem particle = externalWindTrailParticles[i];
+                ParticleSystem.MainModule main = particle.main;
+                main.startLifetimeMultiplier *= 0.48f;
+                ParticleSystem.TrailModule trails = particle.trails;
+                if (trails.enabled) trails.lifetimeMultiplier *= 0.52f;
+            }
         }
 
         private void RestartAccelerationAuraIfReversing()
@@ -453,29 +556,83 @@ namespace PlayableAd
             auraParticles.Play();
         }
 
-        private void BuildAirflowParticles()
+        private void BuildAirflowTrail()
         {
-            GameObject root = new GameObject("CharacterAirflowPool");
+            airflowMaterial = BuildAirflowMaterial();
+            airflowTrails = new[]
+            {
+                BuildAirflowTrailRenderer("CharacterAirflowCore",
+                    new Vector3(0f, 0.62f, 0.12f), -4),
+                BuildAirflowTrailRenderer("CharacterAirflowLeft",
+                    new Vector3(-0.31f, 0.57f, 0.18f), -3),
+                BuildAirflowTrailRenderer("CharacterAirflowRight",
+                    new Vector3(0.31f, 0.57f, 0.18f), -3)
+            };
+        }
+
+        private TrailRenderer BuildAirflowTrailRenderer(
+            string objectName, Vector3 localPosition, int sortingOrder)
+        {
+            GameObject root = new GameObject(objectName);
             root.transform.SetParent(transform, false);
-            airflowParticles = root.AddComponent<ParticleSystem>();
-            ParticleSystem.MainModule main = airflowParticles.main;
-            main.loop = true;
-            main.startLifetime = new ParticleSystem.MinMaxCurve(0.14f, 0.3f);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.018f, 0.05f);
-            main.maxParticles = 72;
-            main.simulationSpace = ParticleSystemSimulationSpace.Local;
-            ParticleSystem.ShapeModule shape = airflowParticles.shape;
-            shape.shapeType = ParticleSystemShapeType.Sphere;
-            shape.radius = 0.62f;
-            ParticleSystem.VelocityOverLifetimeModule velocity = airflowParticles.velocityOverLifetime;
-            velocity.enabled = true;
-            velocity.z = -1f;
-            ParticleSystemRenderer renderer = root.GetComponent<ParticleSystemRenderer>();
-            renderer.renderMode = ParticleSystemRenderMode.Stretch;
-            renderer.lengthScale = 2.2f;
-            renderer.velocityScale = 0.16f;
-            renderer.sharedMaterial = profile.particleMaterial != null ? profile.particleMaterial : mainTrail.sharedMaterial;
-            airflowParticles.Play();
+            root.transform.localPosition = localPosition;
+            TrailRenderer trail = root.AddComponent<TrailRenderer>();
+            trail.sharedMaterial = airflowMaterial;
+            trail.alignment = LineAlignment.View;
+            trail.textureMode = LineTextureMode.Stretch;
+            trail.minVertexDistance = 0.035f;
+            trail.numCapVertices = 4;
+            trail.numCornerVertices = 3;
+            trail.autodestruct = false;
+            trail.generateLightingData = false;
+            trail.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            trail.receiveShadows = false;
+            trail.sortingOrder = sortingOrder;
+            trail.time = 0.01f;
+            trail.startWidth = 0f;
+            trail.endWidth = 0f;
+            trail.emitting = false;
+            return trail;
+        }
+
+
+        private Material BuildAirflowMaterial()
+        {
+            Material source = profile.trailMaterial != null ? profile.trailMaterial : mainTrail.sharedMaterial;
+            Material material = new Material(source);
+            airflowTexture = BuildAirflowTexture();
+            material.mainTexture = airflowTexture;
+            return material;
+        }
+
+        private static Texture2D BuildAirflowTexture()
+        {
+            const int width = 64;
+            const int height = 128;
+            Texture2D texture = new Texture2D(width, height, TextureFormat.RGBA32, false)
+            {
+                wrapMode = TextureWrapMode.Clamp,
+                filterMode = FilterMode.Bilinear
+            };
+            Color32[] pixels = new Color32[width * height];
+            for (int y = 0; y < height; y++)
+            {
+                float vertical = y / (height - 1f);
+                float endFade = Mathf.SmoothStep(0f, 1f,
+                    Mathf.Min(vertical, 1f - vertical) * 5f);
+                float streak = 0.72f + 0.28f * Mathf.Pow(
+                    0.5f + 0.5f * Mathf.Sin(vertical * Mathf.PI * 13f), 2f);
+                for (int x = 0; x < width; x++)
+                {
+                    float horizontal = Mathf.Abs(x / (width - 1f) * 2f - 1f);
+                    float edgeFade = 1f - Mathf.SmoothStep(0.36f, 1f, horizontal);
+                    pixels[y * width + x] = new Color(1f, 1f, 1f,
+                        edgeFade * endFade * streak);
+                }
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false, true);
+            return texture;
         }
 
         private void BuildGroundFlowParticles()
@@ -536,32 +693,62 @@ namespace PlayableAd
             }
         }
 
-        private void UpdateLayeredAirflow(float qualityMultiplier)
+        private void UpdateLayeredAirflow(float qualityMultiplier, float forwardSpeed, float worldScale)
         {
-            if (airflowParticles == null || groundFlowParticles == null || pressureCone == null) return;
-            ParticleSystem.EmissionModule airflowEmission = airflowParticles.emission;
-            airflowEmission.rateOverTime = currentAirflowEmission * qualityMultiplier * profile.highSpeedEffectIntensity;
-            ParticleSystem.MainModule airflowMain = airflowParticles.main;
-            airflowMain.simulationSpeed = BulletTimeManager.Instance != null
-                ? BulletTimeManager.Instance.WorldTimeScale
-                : 1f;
-            Color airflowColor = currentPrimary;
-            airflowColor.a = currentAirflowAlpha;
-            airflowMain.startColor = new ParticleSystem.MinMaxGradient(airflowColor, currentSecondary);
-            airflowMain.startSpeed = currentAirflowSpeed;
+            if (airflowTrails == null || groundFlowParticles == null || pressureCone == null) return;
+
+            float levelStrength = Mathf.InverseLerp(1f, 10f, currentLevel);
+            float airflowStrength = Mathf.Clamp01(Mathf.Max(
+                currentAirflowAlpha / 0.74f, 0.22f + levelStrength * 0.78f));
+            float stageIntensity = GetImpactStageIntensity(currentLevel);
+            Color stageColor = GetImpactStageColor(currentLevel);
+            BuildAirflowPalette(stageColor, out Color deepColor, out Color midColor,
+                out Color brightColor, out Color glintColor);
+            bool showAirflow = runningTrailsVisible && forwardSpeed > 0.1f;
+
+            for (int i = 0; i < airflowTrails.Length; i++)
+            {
+                TrailRenderer trail = airflowTrails[i];
+                if (trail == null) continue;
+                bool sideTrail = i > 0;
+                trail.emitting = showAirflow && (!performance.lowQualityMode || i < 2);
+                if (trail.emitting)
+                {
+                    float trailLength = Mathf.Lerp(sideTrail ? 1.4f : 1.8f,
+                        sideTrail ? 4.2f : 5.2f, airflowStrength) * stageIntensity;
+                    trail.time = trailLength / Mathf.Max(1f, forwardSpeed * worldScale);
+                    trail.startWidth = Mathf.Lerp(sideTrail ? 0.2f : 0.68f,
+                        sideTrail ? 0.34f : 1.02f, airflowStrength) * stageIntensity;
+                    trail.endWidth = Mathf.Lerp(sideTrail ? 0.05f : 0.1f,
+                        sideTrail ? 0.1f : 0.18f, airflowStrength);
+                    trail.colorGradient = sideTrail
+                        ? sideAirflowGradient
+                        : coreAirflowGradient;
+                }
+                else
+                {
+                    trail.time = 0.01f;
+                    trail.startWidth = 0f;
+                    trail.endWidth = 0f;
+                    trail.Clear();
+                }
+            }
 
             ParticleSystem.EmissionModule groundEmission = groundFlowParticles.emission;
-            groundEmission.rateOverTime = currentGroundFlow * 22f * qualityMultiplier;
+            groundEmission.rateOverTime = runningTrailsVisible
+                ? currentGroundFlow * 22f * qualityMultiplier
+                : 0f;
             ParticleSystem.MainModule groundMain = groundFlowParticles.main;
             groundMain.simulationSpeed = BulletTimeManager.Instance != null
                 ? BulletTimeManager.Instance.WorldTimeScale
                 : 1f;
-            Color groundColor = currentSecondary;
-            groundColor.a = currentGroundFlow * 0.48f;
+            Color groundColor = midColor;
+            groundColor.a = currentGroundFlow * 0.56f;
             groundMain.startColor = groundColor;
             groundMain.startSpeed = Mathf.Max(0.5f, currentAirflowSpeed * 0.72f);
 
-            bool showCone = !performance.lowQualityMode && currentPressureCone > 0.02f;
+            bool showCone = runningTrailsVisible && !performance.lowQualityMode
+                && currentPressureCone > 0.02f;
             pressureCone.enabled = showCone;
             if (showCone)
             {
@@ -571,17 +758,17 @@ namespace PlayableAd
                 pressureCone.SetPosition(2, new Vector3(0.35f, 0.05f, 0f));
                 pressureCone.startWidth = 0.025f + currentPressureCone * 0.04f;
                 pressureCone.endWidth = pressureCone.startWidth;
-                Color coneColor = currentPrimary;
-                coneColor.a = currentPressureCone * 0.36f;
+                Color coneColor = brightColor;
+                coneColor.a = currentPressureCone * 0.5f;
                 pressureCone.startColor = coneColor;
-                pressureCone.endColor = new Color(currentSecondary.r, currentSecondary.g, currentSecondary.b, 0f);
+                pressureCone.endColor = new Color(deepColor.r, deepColor.g, deepColor.b, 0f);
             }
         }
 
         private void UpdateAfterimages(float worldDeltaTime)
         {
             if (afterimages == null) return;
-            bool allowed = !performance.lowQualityMode && currentAfterimageRate > 0.01f;
+            bool allowed = runningTrailsVisible && !performance.lowQualityMode && currentAfterimageRate > 0.01f;
             afterimageSpawnTimer -= worldDeltaTime;
             if (allowed && afterimageSpawnTimer <= 0f)
             {
@@ -683,62 +870,70 @@ namespace PlayableAd
                 levelUpRings[i] = ring;
             }
 
-            BuildSonicBoomPool(Mathf.Clamp(count * 2, 4, 8), material);
+            BuildSonicBoomPool(Mathf.Clamp(count * 2, 4, 8));
         }
 
-        private void BuildSonicBoomPool(int count, Material material)
+        private void BuildSonicBoomPool(int count)
         {
+            Texture2D atlas = Resources.Load<Texture2D>("ImpactTextures/ImpactBurstAtlas");
+            if (atlas == null) return;
+            const int atlasColumns = 6;
+            const int atlasRows = 6;
+            float cellWidth = atlas.width / (float)atlasColumns;
+            float cellHeight = atlas.height / (float)atlasRows;
+            int[] frameColumns = { 2, 3, 5 };
+            sonicBoomSprites = new Sprite[frameColumns.Length];
+            for (int i = 0; i < frameColumns.Length; i++)
+            {
+                Rect rect = new Rect(frameColumns[i] * cellWidth,
+                    atlas.height - cellHeight * 3f, cellWidth, cellHeight);
+                sonicBoomSprites[i] = Sprite.Create(atlas, rect, new Vector2(0.5f, 0.5f),
+                    cellWidth * 0.5f, 0, SpriteMeshType.FullRect);
+                sonicBoomSprites[i].name = "RuntimeCollisionShockwave_" + i;
+            }
+
             sonicBoomPoolRoot = new GameObject("SpeedLevelUpVFX_SonicBoomPool").transform;
             sonicBoomPoolRoot.SetParent(transform.parent, false);
-            sonicBoomRings = new LineRenderer[count];
+            sonicBoomRings = new SpriteRenderer[count];
             sonicRingTimers = new float[count];
             sonicRingDurations = new float[count];
             sonicRingScales = new float[count];
             sonicRingAlphas = new float[count];
-            const int segments = 40;
+            sonicRingColors = new Color[count];
             for (int i = 0; i < count; i++)
             {
-                GameObject ringObject = new GameObject("SpeedLevelUpVFX_SonicBoomRing_" + i);
+                GameObject ringObject = new GameObject("CollisionShockwaveTexture_" + i);
                 ringObject.transform.SetParent(sonicBoomPoolRoot, false);
-                LineRenderer ring = ringObject.AddComponent<LineRenderer>();
-                ring.useWorldSpace = false;
-                ring.loop = true;
-                ring.positionCount = segments;
-                ring.sharedMaterial = material;
-                ring.startWidth = 0.28f;
-                ring.endWidth = 0.28f;
-                ring.numCornerVertices = 3;
-                ring.numCapVertices = 2;
-                for (int p = 0; p < segments; p++)
-                {
-                    float angle = p / (float)segments * Mathf.PI * 2f;
-                    ring.SetPosition(p, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0f));
-                }
+                SpriteRenderer ring = ringObject.AddComponent<SpriteRenderer>();
+                ring.sprite = sonicBoomSprites[i % sonicBoomSprites.Length];
+                ring.sortingOrder = 8;
+                ring.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                ring.receiveShadows = false;
                 ring.enabled = false;
                 sonicBoomRings[i] = ring;
             }
         }
 
-        private void PlaySonicBoomRing(float duration, float scale, float alpha)
+        private void PlaySonicBoomRing(float duration, float scale, float alpha, Color stageColor)
         {
             if (sonicBoomRings == null || sonicBoomRings.Length == 0) return;
             int index = nextSonicRing++ % sonicBoomRings.Length;
-            LineRenderer ring = sonicBoomRings[index];
+            SpriteRenderer ring = sonicBoomRings[index];
             Transform ringTransform = ring.transform;
             Vector3 forward = transform.forward.sqrMagnitude > 0.001f ? transform.forward : Vector3.forward;
             ringTransform.SetPositionAndRotation(
                 transform.position + Vector3.up * 0.7f + forward * 0.85f,
                 Quaternion.LookRotation(forward, Vector3.up));
-            ringTransform.localScale = Vector3.one * 0.28f;
+            ringTransform.localScale = Vector3.one * 0.22f;
+            ring.sprite = sonicBoomSprites[index % sonicBoomSprites.Length];
             sonicRingTimers[index] = 0.0001f;
             sonicRingDurations[index] = Mathf.Max(0.01f, duration);
             sonicRingScales[index] = Mathf.Max(0.28f, scale);
             sonicRingAlphas[index] = Mathf.Clamp01(alpha);
-            Color initialColor = new Color(1f, 1f, 1f, sonicRingAlphas[index]);
-            ring.startColor = initialColor;
-            ring.endColor = initialColor;
-            ring.startWidth = 0.28f;
-            ring.endWidth = 0.28f;
+            sonicRingColors[index] = Color.Lerp(stageColor, Color.white, 0.22f);
+            Color initialColor = sonicRingColors[index];
+            initialColor.a = sonicRingAlphas[index];
+            ring.color = initialColor;
             ring.enabled = true;
         }
 
@@ -750,9 +945,35 @@ namespace PlayableAd
                 if (ringTimers[i] <= 0f) continue;
                 ringTimers[i] += worldDeltaTime;
                 float t = Mathf.Clamp01(ringTimers[i] / Mathf.Max(0.01f, ringDurations[i]));
-                levelUpRings[i].transform.localScale = Vector3.one * Mathf.Lerp(0.12f, ringScales[i], 1f - Mathf.Pow(1f - t, 2f));
+                float scale;
+                float alpha;
+                if (t < 0.22f)
+                {
+                    float phase = t / 0.22f;
+                    scale = Mathf.Lerp(0.12f, ringScales[i] * 1.16f, 1f - Mathf.Pow(1f - phase, 3f));
+                    alpha = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(phase * 2f));
+                }
+                else if (t < 0.42f)
+                {
+                    float phase = (t - 0.22f) / 0.2f;
+                    scale = Mathf.Lerp(ringScales[i] * 1.16f, ringScales[i], Mathf.SmoothStep(0f, 1f, phase));
+                    alpha = 1f;
+                }
+                else if (t < 0.68f)
+                {
+                    scale = ringScales[i] * (1f + Mathf.Sin((t - 0.42f) * Mathf.PI * 4f) * 0.018f);
+                    alpha = 0.92f;
+                }
+                else
+                {
+                    float phase = (t - 0.68f) / 0.32f;
+                    float eased = Mathf.SmoothStep(0f, 1f, phase);
+                    scale = Mathf.Lerp(ringScales[i], 0.06f, eased);
+                    alpha = 1f - eased;
+                }
+                levelUpRings[i].transform.localScale = Vector3.one * scale;
                 Color color = ringColors[i];
-                color.a *= 1f - t;
+                color.a *= alpha;
                 levelUpRings[i].startColor = color;
                 levelUpRings[i].endColor = color;
                 if (t >= 1f)
@@ -772,14 +993,17 @@ namespace PlayableAd
                 sonicRingTimers[i] += worldDeltaTime;
                 float t = Mathf.Clamp01(sonicRingTimers[i] / Mathf.Max(0.01f, sonicRingDurations[i]));
                 float expansion = 1f - Mathf.Pow(1f - t, 3f);
-                LineRenderer ring = sonicBoomRings[i];
-                ring.transform.localScale = Vector3.one * Mathf.Lerp(0.28f, sonicRingScales[i], expansion);
+                SpriteRenderer ring = sonicBoomRings[i];
+                float scale = Mathf.Lerp(0.22f, sonicRingScales[i], expansion);
+                float distortion = Mathf.Sin(sonicRingTimers[i] * 34f + i) * 0.035f;
+                ring.transform.localScale = new Vector3(
+                    scale * (1f + distortion), scale * (1f - distortion * 0.7f), 1f);
+                ring.transform.Rotate(0f, 0f, (i % 2 == 0 ? 1f : -1f) *
+                    95f * worldDeltaTime, Space.Self);
                 float alpha = sonicRingAlphas[i] * (1f - Mathf.SmoothStep(0.08f, 1f, t));
-                Color color = new Color(1f, 1f, 1f, alpha);
-                ring.startColor = color;
-                ring.endColor = color;
-                ring.startWidth = Mathf.Lerp(0.28f, 0.1f, t);
-                ring.endWidth = ring.startWidth;
+                Color color = sonicRingColors[i];
+                color.a = alpha;
+                ring.color = color;
                 if (t >= 1f)
                 {
                     sonicRingTimers[i] = 0f;
@@ -790,7 +1014,7 @@ namespace PlayableAd
 
         private void UpdateEdgeLines(float forwardSpeed)
         {
-            bool visible = performance.enableSecondarySpeedLines && !performance.lowQualityMode && currentLevel >= 4;
+            bool visible = runningTrailsVisible && performance.enableSecondarySpeedLines && !performance.lowQualityMode && currentLevel >= 4;
             float timeOffset = animationTime * Mathf.Max(1f, forwardSpeed) * 1.8f;
             for (int i = 0; i < edgeLines.Length; i++)
             {
@@ -819,9 +1043,295 @@ namespace PlayableAd
 
         private void OnDestroy()
         {
-            if (sonicBoomPoolRoot == null) return;
-            if (Application.isPlaying) Destroy(sonicBoomPoolRoot.gameObject);
-            else DestroyImmediate(sonicBoomPoolRoot.gameObject);
+            DestroyFrontAirflowSprites();
+            if (sonicBoomSprites != null)
+            {
+                for (int i = 0; i < sonicBoomSprites.Length; i++)
+                {
+                    if (sonicBoomSprites[i] == null) continue;
+                    if (Application.isPlaying) Destroy(sonicBoomSprites[i]);
+                    else DestroyImmediate(sonicBoomSprites[i]);
+                }
+            }
+            if (sonicBoomPoolRoot != null)
+            {
+                if (Application.isPlaying) Destroy(sonicBoomPoolRoot.gameObject);
+                else DestroyImmediate(sonicBoomPoolRoot.gameObject);
+            }
+            if (airflowMaterial != null)
+            {
+                if (Application.isPlaying) Destroy(airflowMaterial);
+                else DestroyImmediate(airflowMaterial);
+            }
+            if (airflowTexture != null)
+            {
+                if (Application.isPlaying) Destroy(airflowTexture);
+                else DestroyImmediate(airflowTexture);
+            }
         }
-    }
+
+
+        private void BuildFrontImpactAirflow()
+        {
+            frontImpactAirflowAtlas =
+                Resources.Load<Texture2D>("SpeedTextures/FrontImpactAirflowAtlas");
+            if (frontImpactAirflowAtlas == null) return;
+
+            int[] plumeFrames = { 0, 2, 3, 4 };
+            int[] shockFrames = { 1, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17 };
+            frontImpactPlumeSprites = BuildFrontAirflowSprites(plumeFrames);
+            frontImpactShockSprites = BuildFrontAirflowSprites(shockFrames);
+
+            frontImpactAirflowRoot = new GameObject("FrontImpactAirflow").transform;
+            frontImpactAirflowRoot.SetParent(transform, false);
+            frontImpactAirflowRoot.localPosition = new Vector3(0f, 0.26f, 0.9f);
+
+            frontImpactShock = BuildFrontAirflowRenderer(
+                "FrontImpactShockWave", frontImpactAirflowRoot, -4);
+            frontImpactShock.transform.localPosition = new Vector3(0f, -0.14f, 0.16f);
+
+            frontImpactLeft = BuildFrontAirflowRenderer(
+                "FrontImpactTurbulenceLeft", frontImpactAirflowRoot, -3);
+            frontImpactLeft.transform.localPosition = new Vector3(-0.22f, -0.05f, 0f);
+            frontImpactLeft.transform.localRotation = Quaternion.Euler(0f, 0f, 9f);
+
+            frontImpactRight = BuildFrontAirflowRenderer(
+                "FrontImpactTurbulenceRight", frontImpactAirflowRoot, -3);
+            frontImpactRight.transform.localPosition = new Vector3(0.22f, -0.05f, -0.02f);
+            frontImpactRight.transform.localRotation = Quaternion.Euler(0f, 0f, -9f);
+            frontImpactRight.flipX = true;
+
+            frontImpactWrapLeft = BuildFrontAirflowRenderer(
+                "FrontImpactWrapLeft", frontImpactAirflowRoot, -5);
+            frontImpactWrapLeft.transform.localPosition = new Vector3(-0.58f, -0.12f, -0.56f);
+            frontImpactWrapLeft.transform.localRotation = Quaternion.Euler(0f, 0f, 20f);
+
+            frontImpactWrapRight = BuildFrontAirflowRenderer(
+                "FrontImpactWrapRight", frontImpactAirflowRoot, -5);
+            frontImpactWrapRight.transform.localPosition = new Vector3(0.58f, -0.12f, -0.56f);
+            frontImpactWrapRight.transform.localRotation = Quaternion.Euler(0f, 0f, -20f);
+            frontImpactWrapRight.flipX = true;
+
+            frontImpactCore = BuildFrontAirflowRenderer(
+                "FrontImpactCoreHighlight", frontImpactAirflowRoot, -2);
+            frontImpactCore.transform.localPosition = new Vector3(0f, -0.1f, 0.12f);
+
+            frontImpactShock.sprite = frontImpactShockSprites[0];
+            frontImpactLeft.sprite = frontImpactPlumeSprites[0];
+            frontImpactRight.sprite = frontImpactPlumeSprites[2];
+            frontImpactWrapLeft.sprite = frontImpactPlumeSprites[1];
+            frontImpactWrapRight.sprite = frontImpactPlumeSprites[3];
+            frontImpactCore.sprite = frontImpactShockSprites[1];
+            frontImpactAirflowRoot.gameObject.SetActive(false);
+        }
+
+        private Sprite[] BuildFrontAirflowSprites(int[] frameIndices)
+        {
+            const int columns = 4;
+            const int rows = 5;
+            float cellWidth = frontImpactAirflowAtlas.width / (float)columns;
+            float cellHeight = frontImpactAirflowAtlas.height / (float)rows;
+            Sprite[] sprites = new Sprite[frameIndices.Length];
+            for (int i = 0; i < frameIndices.Length; i++)
+            {
+                int frame = frameIndices[i];
+                int column = frame % columns;
+                int rowFromTop = frame / columns;
+                Rect rect = new Rect(column * cellWidth,
+                    frontImpactAirflowAtlas.height - (rowFromTop + 1) * cellHeight,
+                    cellWidth, cellHeight);
+                sprites[i] = Sprite.Create(frontImpactAirflowAtlas, rect,
+                    new Vector2(0.5f, 0.5f), 128f, 0, SpriteMeshType.FullRect);
+                sprites[i].name = "RuntimeFrontAirflow_" + frame;
+            }
+            return sprites;
+        }
+
+        private static SpriteRenderer BuildFrontAirflowRenderer(
+            string objectName, Transform parent, int sortingOrder)
+        {
+            GameObject root = new GameObject(objectName);
+            root.transform.SetParent(parent, false);
+            SpriteRenderer renderer = root.AddComponent<SpriteRenderer>();
+            renderer.sortingOrder = sortingOrder;
+            return renderer;
+        }
+
+        private void UpdateFrontImpactAirflow(float forwardSpeed)
+        {
+            if (frontImpactAirflowRoot == null || frontImpactShockSprites == null ||
+                frontImpactPlumeSprites == null) return;
+
+            bool visible = runningTrailsVisible && forwardSpeed > 0.1f;
+            if (frontImpactAirflowRoot.gameObject.activeSelf != visible)
+                frontImpactAirflowRoot.gameObject.SetActive(visible);
+            if (!visible) return;
+
+            float levelStrength = Mathf.InverseLerp(1f, 10f, currentLevel);
+            float pulse = 1f + Mathf.Sin(animationTime * Mathf.Lerp(7f, 12f, levelStrength))
+                * Mathf.Lerp(0.045f, 0.1f, levelStrength);
+            float boost = 1f + temporaryBoost * 0.1f;
+            float stageIntensity = GetImpactStageIntensity(currentLevel);
+            Color stageColor = GetImpactStageColor(currentLevel);
+            BuildAirflowPalette(stageColor, out Color deepColor, out Color midColor,
+                out Color brightColor, out Color glintColor);
+
+            int shockFrame = (Mathf.FloorToInt(animationTime *
+                Mathf.Lerp(4f, 7.5f, levelStrength)) + currentLevel * 2)
+                % frontImpactShockSprites.Length;
+            int plumeFrame = (Mathf.FloorToInt(animationTime *
+                Mathf.Lerp(5f, 9f, levelStrength)) + currentLevel)
+                % frontImpactPlumeSprites.Length;
+
+            frontImpactShock.sprite = frontImpactShockSprites[shockFrame];
+            frontImpactCore.sprite =
+                frontImpactShockSprites[(shockFrame + 5) % frontImpactShockSprites.Length];
+            frontImpactLeft.sprite = frontImpactPlumeSprites[plumeFrame];
+            frontImpactRight.sprite =
+                frontImpactPlumeSprites[(plumeFrame + 2) % frontImpactPlumeSprites.Length];
+            frontImpactWrapLeft.sprite =
+                frontImpactPlumeSprites[(plumeFrame + 1) % frontImpactPlumeSprites.Length];
+            frontImpactWrapRight.sprite =
+                frontImpactPlumeSprites[(plumeFrame + 3) % frontImpactPlumeSprites.Length];
+
+            float shockAlpha = Mathf.Clamp01(
+                Mathf.Lerp(0.48f, 0.9f, levelStrength) * stageIntensity * boost);
+            float plumeAlpha = Mathf.Clamp01(
+                Mathf.Lerp(0.42f, 0.78f, levelStrength) * stageIntensity * boost);
+            float wrapAlpha = Mathf.Clamp01(
+                Mathf.Lerp(0.34f, 0.68f, levelStrength) * stageIntensity * boost);
+            frontImpactShock.color = new Color(
+                midColor.r, midColor.g, midColor.b, shockAlpha);
+            frontImpactLeft.color = new Color(
+                brightColor.r, brightColor.g, brightColor.b, plumeAlpha);
+            frontImpactRight.color = frontImpactLeft.color;
+            frontImpactWrapLeft.color = new Color(
+                stageColor.r, stageColor.g, stageColor.b, wrapAlpha);
+            frontImpactWrapRight.color = frontImpactWrapLeft.color;
+            frontImpactCore.color = new Color(
+                glintColor.r, glintColor.g, glintColor.b, shockAlpha * 0.72f);
+
+            frontImpactAirflowRoot.localPosition = new Vector3(
+                0f, Mathf.Lerp(0.2f, 0.34f, levelStrength),
+                Mathf.Lerp(0.92f, 1.45f, levelStrength));
+
+            frontImpactShock.transform.localScale = new Vector3(
+                Mathf.Lerp(0.62f, 0.78f, levelStrength) * pulse * boost,
+                Mathf.Lerp(0.54f, 0.72f, levelStrength) * boost, 1f);
+            Vector3 plumeScale = new Vector3(
+                Mathf.Lerp(0.38f, 0.5f, levelStrength) * boost,
+                Mathf.Lerp(0.82f, 1.08f, levelStrength) * pulse * boost, 1f);
+            frontImpactLeft.transform.localScale = plumeScale;
+            frontImpactRight.transform.localScale = plumeScale;
+
+            float wrapOffset = Mathf.Lerp(0.34f, 0.44f, levelStrength);
+            float wrapDepth = Mathf.Lerp(-0.48f, -0.72f, levelStrength);
+            frontImpactWrapLeft.transform.localPosition =
+                new Vector3(-wrapOffset, -0.12f, wrapDepth);
+            frontImpactWrapRight.transform.localPosition =
+                new Vector3(wrapOffset, -0.12f, wrapDepth);
+            Vector3 wrapScale = new Vector3(
+                Mathf.Lerp(0.28f, 0.38f, levelStrength) * boost,
+                Mathf.Lerp(0.78f, 1.08f, levelStrength) * pulse * boost, 1f);
+            frontImpactWrapLeft.transform.localScale = wrapScale;
+            frontImpactWrapRight.transform.localScale = wrapScale;
+
+            frontImpactCore.transform.localScale = new Vector3(
+                Mathf.Lerp(0.34f, 0.46f, levelStrength) * pulse * boost,
+                Mathf.Lerp(0.32f, 0.46f, levelStrength) * boost, 1f);
+        }
+
+        private static Color GetImpactStageColor(int speedLevel)
+        {
+            if (speedLevel <= 2) return new Color(0.92f, 0.97f, 1f);
+            if (speedLevel <= 6) return new Color(0.08f, 0.5f, 1f);
+            if (speedLevel <= 8) return new Color(1f, 0.66f, 0.04f);
+            return new Color(1f, 0.07f, 0.025f);
+        }
+
+        private static float GetImpactStageIntensity(int speedLevel)
+        {
+            if (speedLevel <= 2) return 1.38f;
+            if (speedLevel <= 6) return 1.22f;
+            if (speedLevel <= 8) return 1f;
+            return 1.12f;
+        }
+
+        private static void BuildAirflowPalette(Color source, out Color deep,
+            out Color mid, out Color bright, out Color glint)
+        {
+            Color.RGBToHSV(source, out float hue, out float saturation, out float value);
+            deep = Color.HSVToRGB(hue, Mathf.Clamp01(saturation * 1.08f + 0.04f),
+                Mathf.Clamp(value * 0.62f, 0.12f, 1f));
+            mid = Color.HSVToRGB(hue, Mathf.Clamp01(saturation * 0.88f),
+                Mathf.Clamp(value * 1.02f, 0.35f, 1f));
+            bright = Color.HSVToRGB(hue, Mathf.Clamp01(saturation * 0.48f),
+                Mathf.Clamp(value * 1.24f, 0.78f, 1f));
+            glint = Color.HSVToRGB(hue, Mathf.Clamp01(saturation * 0.18f), 1f);
+            deep.a = 0.88f;
+            mid.a = 1f;
+            bright.a = 1f;
+            glint.a = 1f;
+        }
+
+        private void EnsureAirflowGradients(int speedLevel)
+        {
+            int stage = speedLevel <= 2 ? 0 : speedLevel <= 6 ? 1 : speedLevel <= 8 ? 2 : 3;
+            if (airflowGradientStage == stage && mainAirflowGradient != null) return;
+
+            airflowGradientStage = stage;
+            Color stageColor = GetImpactStageColor(speedLevel);
+            float intensity = GetImpactStageIntensity(speedLevel);
+            BuildAirflowPalette(stageColor, out Color deep, out Color mid,
+                out Color bright, out Color glint);
+
+            mainAirflowGradient = BuildTailGradient(
+                glint, bright, mid, deep, Mathf.Clamp01(0.5f * intensity));
+            coreAirflowGradient = BuildTailGradient(
+                glint, bright, mid, deep, Mathf.Clamp01(0.82f * intensity));
+            sideAirflowGradient = BuildTailGradient(
+                bright, glint, mid, deep, Mathf.Clamp01(0.7f * intensity));
+        }
+
+        private static Gradient BuildTailGradient(Color start, Color highlight,
+            Color middle, Color end, float alpha)
+        {
+            Gradient gradient = new Gradient();
+            gradient.SetKeys(
+                new[]
+                {
+                    new GradientColorKey(start, 0f),
+                    new GradientColorKey(highlight, 0.18f),
+                    new GradientColorKey(middle, 0.52f),
+                    new GradientColorKey(end, 1f)
+                },
+                new[]
+                {
+                    new GradientAlphaKey(alpha * 0.72f, 0f),
+                    new GradientAlphaKey(alpha, 0.16f),
+                    new GradientAlphaKey(alpha * 0.68f, 0.58f),
+                    new GradientAlphaKey(0f, 1f)
+                });
+            return gradient;
+        }
+
+
+
+        private void DestroyFrontAirflowSprites()
+        {
+            DestroySpriteArray(frontImpactPlumeSprites);
+            DestroySpriteArray(frontImpactShockSprites);
+        }
+
+        private static void DestroySpriteArray(Sprite[] sprites)
+        {
+            if (sprites == null) return;
+            for (int i = 0; i < sprites.Length; i++)
+            {
+                if (sprites[i] == null) continue;
+                if (Application.isPlaying) Destroy(sprites[i]);
+                else DestroyImmediate(sprites[i]);
+            }
+        }
+}
 }

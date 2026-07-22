@@ -57,10 +57,10 @@ MonoBehaviour:
     speedLineIntensity: 0.08
     characterEnergyIntensity: 0.22
     uiColor: {r: 0.12, g: 1, b: 0.24, a: 1}
-    airflowEmission: 0
-    airflowSpeed: 2
+    airflowEmission: 0.8
+    airflowSpeed: 2.6
     airflowLength: 0.25
-    airflowAlpha: 0
+    airflowAlpha: 0.035
     groundFlowIntensity: 0
     afterimageRate: 0
     afterimageLifetime: 0.12
@@ -81,10 +81,10 @@ MonoBehaviour:
     speedLineIntensity: 0.15
     characterEnergyIntensity: 0.35
     uiColor: {r: 0.32, g: 0.76, b: 1, a: 1}
-    airflowEmission: 0
-    airflowSpeed: 2
+    airflowEmission: 1.8
+    airflowSpeed: 3.2
     airflowLength: 0.25
-    airflowAlpha: 0
+    airflowAlpha: 0.07
     groundFlowIntensity: 0
     afterimageRate: 0
     afterimageLifetime: 0.12
@@ -105,10 +105,10 @@ MonoBehaviour:
     speedLineIntensity: 0.25
     characterEnergyIntensity: 0.55
     uiColor: {r: 0.06, g: 0.48, b: 1, a: 1}
-    airflowEmission: 0.6942148
-    airflowSpeed: 2.8181818
+    airflowEmission: 3.5
+    airflowSpeed: 4
     airflowLength: 0.48181817
-    airflowAlpha: 0.06545454
+    airflowAlpha: 0.12
     groundFlowIntensity: 0.090909086
     afterimageRate: 0
     afterimageLifetime: 0.13090909
@@ -129,10 +129,10 @@ MonoBehaviour:
     speedLineIntensity: 0.35
     characterEnergyIntensity: 0.75
     uiColor: {r: 0.72, g: 0.4, b: 1, a: 1}
-    airflowEmission: 2.5174565
-    airflowSpeed: 3.9870129
+    airflowEmission: 6
+    airflowSpeed: 5
     airflowLength: 0.81298697
-    airflowAlpha: 0.15896104
+    airflowAlpha: 0.19
     groundFlowIntensity: 0.22077921
     afterimageRate: 0
     afterimageLifetime: 0.14649351
@@ -153,10 +153,10 @@ MonoBehaviour:
     speedLineIntensity: 0.48
     characterEnergyIntensity: 1
     uiColor: {r: 0.58, g: 0.08, b: 1, a: 1}
-    airflowEmission: 6.350143
-    airflowSpeed: 5.5064936
+    airflowEmission: 9.5
+    airflowSpeed: 6.2
     airflowLength: 1.2435064
-    airflowAlpha: 0.2805195
+    airflowAlpha: 0.29
     groundFlowIntensity: 0.38961038
     afterimageRate: 0
     afterimageLifetime: 0.16675325
@@ -177,10 +177,10 @@ MonoBehaviour:
     speedLineIntensity: 0.6
     characterEnergyIntensity: 1.2
     uiColor: {r: 1, g: 0.78, b: 0.28, a: 1}
-    airflowEmission: 11.355372
-    airflowSpeed: 6.909091
+    airflowEmission: 14
+    airflowSpeed: 7.5
     airflowLength: 1.6409091
-    airflowAlpha: 0.3927273
+    airflowAlpha: 0.4
     groundFlowIntensity: 0.54545456
     afterimageRate: 0.8509095
     afterimageLifetime: 0.18545455
@@ -201,10 +201,10 @@ MonoBehaviour:
     speedLineIntensity: 0.72
     characterEnergyIntensity: 1.4
     uiColor: {r: 1, g: 0.55, b: 0.02, a: 1}
-    airflowEmission: 17.769272
-    airflowSpeed: 8.311689
+    airflowEmission: 21
+    airflowSpeed: 8.8
     airflowLength: 2.0383117
-    airflowAlpha: 0.50493515
+    airflowAlpha: 0.51
     groundFlowIntensity: 0.7012988
     afterimageRate: 2.8768842
     afterimageLifetime: 0.20415585
@@ -225,10 +225,10 @@ MonoBehaviour:
     speedLineIntensity: 0.82
     characterEnergyIntensity: 1.6
     uiColor: {r: 1, g: 0.1, b: 0.05, a: 1}
-    airflowEmission: 24.19025
-    airflowSpeed: 9.480519
+    airflowEmission: 28
+    airflowSpeed: 10
     airflowLength: 2.3694804
-    airflowAlpha: 0.5984416
+    airflowAlpha: 0.62
     groundFlowIntensity: 0.83116883
     afterimageRate: 4.565195
     afterimageLifetime: 0.21974026
@@ -249,10 +249,10 @@ MonoBehaviour:
     speedLineIntensity: 0.95
     characterEnergyIntensity: 2
     uiColor: {r: 1, g: 0.16, b: 0.02, a: 1}
-    airflowEmission: 34
-    airflowSpeed: 11
+    airflowEmission: 36
+    airflowSpeed: 11.5
     airflowLength: 2.8
-    airflowAlpha: 0.72
+    airflowAlpha: 0.74
     groundFlowIntensity: 1
     afterimageRate: 6.76
     afterimageLifetime: 0.24

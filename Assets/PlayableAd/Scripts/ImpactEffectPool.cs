@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 namespace PlayableAd
@@ -48,9 +48,12 @@ namespace PlayableAd
         private ImpactPresentationSettings settings;
         private Transform runner;
         private ParticleSystem[] impactPool;
+        private ParticleSystem[] highlightPool;
         private EnergyShard[] energyShards;
         private int impactCursor;
         private int shardCursor;
+        private Material impactParticleMaterial;
+        private Material highlightParticleMaterial;
         private Material lineMaterial;
         private SpeedVisualProfile visualProfile;
         private VisualPerformanceSettings performance;
@@ -80,23 +83,67 @@ namespace PlayableAd
             BuildEnergyShardPool();
         }
 
-        public void PlayImpact(Vector3 position, Color color, float strength)
+        public void PlayImpact(Vector3 position, Color color, float strength, int speedLevel = 0)
         {
             if (impactPool == null || impactPool.Length == 0 || settings == null)
             {
                 return;
             }
 
-            ParticleSystem particles = impactPool[impactCursor++ % impactPool.Length];
+            Color impactColor = speedLevel > 0 ? GetImpactStageColor(speedLevel) : color;
+            float visualStrength = strength * GetImpactStageIntensity(speedLevel);
+            int poolIndex = impactCursor++ % impactPool.Length;
+            ParticleSystem particles = impactPool[poolIndex];
             particles.transform.position = position;
+            BuildImpactPalette(impactColor, out Color deepColor, out Color midColor,
+                out Color brightColor, out Color glintColor);
+
             ParticleSystem.MainModule main = particles.main;
-            main.startColor = new ParticleSystem.MinMaxGradient(color);
-            main.startSpeed = new ParticleSystem.MinMaxCurve(3.5f * strength, 7f * strength);
-            main.startSize = new ParticleSystem.MinMaxCurve(0.08f, 0.24f * strength);
+            main.startColor = new ParticleSystem.MinMaxGradient(deepColor, midColor);
+            main.startSpeed = new ParticleSystem.MinMaxCurve(4.5f * visualStrength, 9f * visualStrength);
+            main.startSize = new ParticleSystem.MinMaxCurve(0.22f, 0.64f * visualStrength);
             particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
             particles.Play();
+
             float quality = performance.lowQualityMode ? performance.lowQualityParticleMultiplier : 1f;
-            particles.Emit(Mathf.Clamp(Mathf.RoundToInt(settings.normalImpactParticles * strength * quality), 3, 18));
+            int baseAmount = Mathf.Clamp(
+                Mathf.RoundToInt(settings.normalImpactParticles * visualStrength * quality * 2.05f), 7, 48);
+            particles.Emit(baseAmount);
+
+            if (highlightPool == null || poolIndex >= highlightPool.Length ||
+                highlightPool[poolIndex] == null) return;
+
+            ParticleSystem highlights = highlightPool[poolIndex];
+            highlights.transform.position = position;
+            ParticleSystem.MainModule highlightMain = highlights.main;
+            highlightMain.startColor = new ParticleSystem.MinMaxGradient(brightColor, glintColor);
+            highlightMain.startSpeed = new ParticleSystem.MinMaxCurve(
+                3.2f * visualStrength, 7f * visualStrength);
+            highlightMain.startSize = new ParticleSystem.MinMaxCurve(
+                0.14f, 0.46f * visualStrength);
+            highlights.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+            highlights.Play();
+            highlights.Emit(Mathf.Clamp(Mathf.RoundToInt(baseAmount * 0.85f), 6, 30));
+
+            ParticleSystem.EmitParams coreFlash = new ParticleSystem.EmitParams
+            {
+                position = Vector3.zero,
+                velocity = Vector3.zero,
+                startColor = glintColor,
+                startSize = 1.05f * visualStrength,
+                startLifetime = 0.16f
+            };
+            highlights.Emit(coreFlash, 1);
+
+            ParticleSystem.EmitParams coreGlow = new ParticleSystem.EmitParams
+            {
+                position = Vector3.zero,
+                velocity = Vector3.zero,
+                startColor = brightColor,
+                startSize = 0.68f * visualStrength,
+                startLifetime = 0.26f
+            };
+            highlights.Emit(coreGlow, 1);
         }
 
         public void PlayEnergyReturn(Vector3 position, int count, Color color, float strength = 1f)
@@ -144,6 +191,16 @@ namespace PlayableAd
                 {
                     if (impactPool[i] == null) continue;
                     ParticleSystem.MainModule main = impactPool[i].main;
+                    main.simulationSpeed = bulletTimeScale;
+                }
+            }
+
+            if (highlightPool != null)
+            {
+                for (int i = 0; i < highlightPool.Length; i++)
+                {
+                    if (highlightPool[i] == null) continue;
+                    ParticleSystem.MainModule main = highlightPool[i].main;
                     main.simulationSpeed = bulletTimeScale;
                 }
             }
@@ -206,31 +263,140 @@ namespace PlayableAd
         {
             int count = Mathf.Clamp(settings.impactPoolSize, 3, 10);
             impactPool = new ParticleSystem[count];
-            Material particleMaterial = visualProfile != null && visualProfile.particleMaterial != null
-                ? visualProfile.particleMaterial
-                : RuntimeStyle.CreateMaterial(Color.white, 0f, 0f);
+            highlightPool = new ParticleSystem[count];
+            Material particleMaterial = BuildImpactParticleMaterial();
+            Material highlightMaterial = BuildHighlightParticleMaterial();
+            bool hasImpactAtlas = impactParticleMaterial != null;
             for (int i = 0; i < count; i++)
             {
-                GameObject root = new GameObject("PooledImpact_" + i);
-                root.transform.SetParent(transform, false);
-                ParticleSystem particles = root.AddComponent<ParticleSystem>();
-                particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-                ParticleSystem.MainModule main = particles.main;
-                main.loop = false;
-                main.duration = 0.22f;
-                main.startLifetime = new ParticleSystem.MinMaxCurve(0.18f, 0.42f);
-                main.gravityModifier = 0.75f;
-                main.maxParticles = 20;
-                ParticleSystem.EmissionModule emission = particles.emission;
-                emission.enabled = false;
-                ParticleSystem.ShapeModule shape = particles.shape;
-                shape.shapeType = ParticleSystemShapeType.Hemisphere;
-                shape.radius = 0.15f;
-                ParticleSystemRenderer renderer = root.GetComponent<ParticleSystemRenderer>();
-                renderer.sharedMaterial = particleMaterial;
-                impactPool[i] = particles;
+                impactPool[i] = BuildPooledImpactParticles(
+                    "PooledImpact_" + i, particleMaterial, false, hasImpactAtlas);
+                highlightPool[i] = BuildPooledImpactParticles(
+                    "PooledImpactHighlight_" + i,
+                    highlightMaterial != null ? highlightMaterial : particleMaterial,
+                    true, hasImpactAtlas);
             }
         }
+
+        private ParticleSystem BuildPooledImpactParticles(string objectName, Material material,
+            bool highlight, bool hasImpactAtlas)
+        {
+            GameObject root = new GameObject(objectName);
+            root.transform.SetParent(transform, false);
+            ParticleSystem particles = root.AddComponent<ParticleSystem>();
+            particles.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
+
+            ParticleSystem.MainModule main = particles.main;
+            main.loop = false;
+            main.duration = highlight ? 0.2f : 0.26f;
+            main.startLifetime = highlight
+                ? new ParticleSystem.MinMaxCurve(0.12f, 0.34f)
+                : new ParticleSystem.MinMaxCurve(0.2f, 0.5f);
+            main.gravityModifier = highlight ? 0.12f : 0.75f;
+            main.startRotation = new ParticleSystem.MinMaxCurve(-Mathf.PI, Mathf.PI);
+            main.maxParticles = highlight ? 36 : 52;
+
+            ParticleSystem.EmissionModule emission = particles.emission;
+            emission.enabled = false;
+            ParticleSystem.ShapeModule shape = particles.shape;
+            shape.shapeType = ParticleSystemShapeType.Hemisphere;
+            shape.radius = highlight ? 0.14f : 0.2f;
+
+            ParticleSystem.ColorOverLifetimeModule colorOverLifetime = particles.colorOverLifetime;
+            colorOverLifetime.enabled = true;
+            Gradient fade = new Gradient();
+            fade.SetKeys(
+                new[] { new GradientColorKey(Color.white, 0f), new GradientColorKey(Color.white, 1f) },
+                highlight
+                    ? new[] { new GradientAlphaKey(0.35f, 0f), new GradientAlphaKey(1f, 0.06f),
+                        new GradientAlphaKey(0.42f, 0.56f), new GradientAlphaKey(0f, 1f) }
+                    : new[] { new GradientAlphaKey(0.55f, 0f), new GradientAlphaKey(1f, 0.08f),
+                        new GradientAlphaKey(0.72f, 0.62f), new GradientAlphaKey(0f, 1f) });
+            colorOverLifetime.color = fade;
+
+            ParticleSystem.TextureSheetAnimationModule textureSheet = particles.textureSheetAnimation;
+            textureSheet.enabled = hasImpactAtlas;
+            textureSheet.mode = ParticleSystemAnimationMode.Grid;
+            textureSheet.animation = ParticleSystemAnimationType.WholeSheet;
+            textureSheet.numTilesX = 6;
+            textureSheet.numTilesY = 6;
+            textureSheet.startFrame = new ParticleSystem.MinMaxCurve(0f, 33.99f / 36f);
+            textureSheet.frameOverTime = new ParticleSystem.MinMaxCurve(0f);
+
+            ParticleSystemRenderer renderer = root.GetComponent<ParticleSystemRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.sortingOrder = highlight ? 1 : 0;
+            return particles;
+        }
+
+
+        private Material BuildImpactParticleMaterial()
+        {
+            Material source = visualProfile != null && visualProfile.particleMaterial != null
+                ? visualProfile.particleMaterial
+                : RuntimeStyle.CreateMaterial(Color.white, 0f, 0f);
+            Texture2D atlas = Resources.Load<Texture2D>("ImpactTextures/ImpactBurstAtlas");
+            if (atlas == null) return source;
+
+            impactParticleMaterial = new Material(source)
+            {
+                name = "RuntimeImpactTextureMaterial",
+                mainTexture = atlas,
+                renderQueue = 3000
+            };
+            impactParticleMaterial.SetOverrideTag("RenderType", "Transparent");
+            if (impactParticleMaterial.HasProperty("_Mode")) impactParticleMaterial.SetFloat("_Mode", 2f);
+            if (impactParticleMaterial.HasProperty("_SrcBlend"))
+                impactParticleMaterial.SetInt("_SrcBlend", (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            if (impactParticleMaterial.HasProperty("_DstBlend"))
+                impactParticleMaterial.SetInt("_DstBlend", (int)UnityEngine.Rendering.BlendMode.OneMinusSrcAlpha);
+            if (impactParticleMaterial.HasProperty("_ZWrite")) impactParticleMaterial.SetInt("_ZWrite", 0);
+            impactParticleMaterial.DisableKeyword("_ALPHATEST_ON");
+            impactParticleMaterial.EnableKeyword("_ALPHABLEND_ON");
+            impactParticleMaterial.DisableKeyword("_ALPHAPREMULTIPLY_ON");
+            return impactParticleMaterial;
+        }
+
+        private Material BuildHighlightParticleMaterial()
+        {
+            if (impactParticleMaterial == null) return null;
+            highlightParticleMaterial = new Material(impactParticleMaterial)
+            {
+                name = "RuntimeImpactHighlightMaterial",
+                renderQueue = 3001
+            };
+            if (highlightParticleMaterial.HasProperty("_Mode"))
+                highlightParticleMaterial.SetFloat("_Mode", 4f);
+            if (highlightParticleMaterial.HasProperty("_SrcBlend"))
+                highlightParticleMaterial.SetInt("_SrcBlend",
+                    (int)UnityEngine.Rendering.BlendMode.SrcAlpha);
+            if (highlightParticleMaterial.HasProperty("_DstBlend"))
+                highlightParticleMaterial.SetInt("_DstBlend",
+                    (int)UnityEngine.Rendering.BlendMode.One);
+            if (highlightParticleMaterial.HasProperty("_ZWrite"))
+                highlightParticleMaterial.SetInt("_ZWrite", 0);
+            return highlightParticleMaterial;
+        }
+
+        private static void BuildImpactPalette(Color source, out Color deep,
+            out Color mid, out Color bright, out Color glint)
+        {
+            Color.RGBToHSV(source, out float hue, out float saturation, out float value);
+            float alpha = Mathf.Clamp01(source.a);
+            deep = Color.HSVToRGB(hue, Mathf.Clamp01(saturation * 1.08f + 0.04f),
+                Mathf.Clamp(value * 0.62f, 0.12f, 1f));
+            mid = Color.HSVToRGB(hue, Mathf.Clamp01(saturation * 0.88f),
+                Mathf.Clamp(value * 1.02f, 0.35f, 1f));
+            bright = Color.HSVToRGB(hue, Mathf.Clamp01(saturation * 0.48f),
+                Mathf.Clamp(value * 1.24f, 0.78f, 1f));
+            glint = Color.HSVToRGB(hue, Mathf.Clamp01(saturation * 0.18f), 1f);
+            deep.a = alpha * 0.88f;
+            mid.a = alpha;
+            bright.a = Mathf.Clamp01(alpha * 1.06f);
+            glint.a = Mathf.Clamp01(alpha * 1.18f);
+        }
+
+
 
         private void BuildEnergyShardPool()
         {
@@ -274,5 +440,37 @@ namespace PlayableAd
             reused.root.SetActive(false);
             return reused;
         }
-    }
+
+        private void OnDestroy()
+        {
+            if (impactParticleMaterial != null)
+            {
+                if (Application.isPlaying) Destroy(impactParticleMaterial);
+                else DestroyImmediate(impactParticleMaterial);
+            }
+            if (highlightParticleMaterial != null)
+            {
+                if (Application.isPlaying) Destroy(highlightParticleMaterial);
+                else DestroyImmediate(highlightParticleMaterial);
+            }
+        }
+
+
+        private static Color GetImpactStageColor(int speedLevel)
+        {
+            if (speedLevel <= 2) return new Color(0.92f, 0.97f, 1f);
+            if (speedLevel <= 6) return new Color(0.08f, 0.5f, 1f);
+            if (speedLevel <= 8) return new Color(1f, 0.66f, 0.04f);
+            return new Color(1f, 0.07f, 0.025f);
+        }
+
+        private static float GetImpactStageIntensity(int speedLevel)
+        {
+            if (speedLevel <= 0) return 1f;
+            if (speedLevel <= 2) return 1.38f;
+            if (speedLevel <= 6) return 1.22f;
+            if (speedLevel <= 8) return 1f;
+            return 1.12f;
+        }
+}
 }

@@ -29,6 +29,9 @@ namespace PlayableAd
         private const float BossDeathAnimationDuration = 1.05f;
         private const float BossStandingY = 2.3f;
         private static readonly int BossDieHash = Animator.StringToHash("Die");
+        private static readonly int BossClashHash = Animator.StringToHash("boss3");
+        private static readonly int PrincessIdleHash = Animator.StringToHash("gongzhu");
+        private static readonly int PrincessWalkHash = Animator.StringToHash("gongzhu2");
 
         public enum SoldierPlacementMode
         {
@@ -299,6 +302,7 @@ namespace PlayableAd
         [Header("External speed VFX（外部速度特效）")]
         [SerializeField, InspectorName("Running Wind Trail Prefab（跑步风痕预制体）")] private GameObject runningWindTrailPrefab;
         [SerializeField, InspectorName("Acceleration Aura Prefab（加速法阵预制体）")] private GameObject accelerationAuraPrefab;
+        [SerializeField, InspectorName("Upgrade Magic Circle Texture（升级法阵贴图）")] private Texture2D upgradeMagicCircleTexture;
 
         [Header("Elixir presentation（药剂表现）")]
         [SerializeField, InspectorName("Elixir Presentation（药剂表现设置）")] private ElixirPresentationSettings elixirPresentation = new ElixirPresentationSettings();
@@ -352,6 +356,7 @@ namespace PlayableAd
         private Transform boss;
         private Transform bossVisual;
         private Animator bossRuntimeAnimator;
+        private Animator princessRuntimeAnimator;
         private Transform princess;
         private Transform cage;
         private Camera gameCamera;
@@ -405,6 +410,10 @@ namespace PlayableAd
         private float smashEffectUntil;
         private bool tutorialBulletTimeWarningActive;
         private LineRenderer upgradeRing;
+        private SpriteRenderer upgradeMagicCircle;
+        private SpriteRenderer upgradeMagicCircleGlow;
+        private Sprite upgradeMagicCircleSprite;
+        private int upgradeRingSequence;
         private float lastImpactTime;
         private float lastNormalShakeTime;
         private int comboPitchIndex;
@@ -1054,8 +1063,10 @@ namespace PlayableAd
             directionalShake = Vector3.up * 0.35f;
             PunchCamera(0.34f, wallBreakPresentation.cameraShake, wallBreakPresentation.fovImpact);
             SpeedTierVisualData wallTier = speedVisualProfile.Get(playerSpeed.tutorialElixirTargetLevel);
-            effectPool?.PlayImpact(encounter.root.transform.position + Vector3.up, wallTier.secondaryColor, 1.75f);
-            effectPool?.PlayImpact(encounter.root.transform.position + new Vector3(0f, 0.2f, -0.4f), new Color(0.48f, 0.43f, 0.38f), 1.2f);
+            effectPool?.PlayImpact(encounter.root.transform.position + Vector3.up,
+                wallTier.secondaryColor, 1.75f, playerSpeed.tutorialElixirTargetLevel);
+            effectPool?.PlayImpact(encounter.root.transform.position + new Vector3(0f, 0.2f, -0.4f),
+                new Color(0.48f, 0.43f, 0.38f), 1.2f, playerSpeed.tutorialElixirTargetLevel);
             audioFeedback?.PlayWallBreak();
             speedFeedback?.Pulse(1f);
 
@@ -1118,7 +1129,8 @@ namespace PlayableAd
 
             visualTimeScale.RequestSlowMotion(elixirPresentation.slowMotionScale, elixirPresentation.slowMotionDuration);
             SpeedTierVisualData elixirTier = speedVisualProfile.Get(nextTier);
-            effectPool?.PlayImpact(pickup.transform.position + Vector3.up * 0.35f, elixirTier.primaryColor, 0.85f);
+            effectPool?.PlayImpact(pickup.transform.position + Vector3.up * 0.35f,
+                elixirTier.primaryColor, 0.85f, nextTier);
             Vector3 startScale = pickup != null ? pickup.transform.localScale : Vector3.one;
             float timer = 0f;
             bool upgraded = false;
@@ -1154,28 +1166,119 @@ namespace PlayableAd
 
         private IEnumerator PlayUpgradeRing(int targetLevel)
         {
-            if (upgradeRing == null)
+            if (upgradeRing == null && upgradeMagicCircle == null)
             {
                 yield break;
             }
 
-            upgradeRing.enabled = true;
+            int sequence = ++upgradeRingSequence;
+            if (upgradeRing != null) upgradeRing.enabled = true;
+            if (upgradeMagicCircle != null) upgradeMagicCircle.enabled = true;
+            if (upgradeMagicCircleGlow != null) upgradeMagicCircleGlow.enabled = true;
+
             float timer = 0f;
-            const float duration = 0.34f;
-            while (timer < duration)
+            const float primaryIntroDuration = 0.22f;
+            const float primarySettleDuration = 0.18f;
+            const float primaryHoldEnd = 0.85f;
+            const float primaryDuration = 1.35f;
+            const float circleIntroDuration = 0.28f;
+            const float circleHoldEnd = 1.75f;
+            const float circleDuration = 2.35f;
+            float normalRadius = elixirPresentation.energyRingMaxRadius;
+            float overshootRadius = normalRadius * 1.18f;
+            Color targetColor = speedVisualProfile.Get(targetLevel).primaryColor;
+            Color circleColor = Color.Lerp(new Color(1f, 0.24f, 0.025f), targetColor, 0.28f);
+            Color circleGlowColor = Color.Lerp(new Color(0.95f, 0.035f, 0.015f), targetColor, 0.16f);
+
+            while (timer < circleDuration && sequence == upgradeRingSequence)
             {
                 timer += Time.unscaledDeltaTime;
-                float t = Mathf.Clamp01(timer / duration);
-                float radius = Mathf.Lerp(0.12f, elixirPresentation.energyRingMaxRadius, 1f - Mathf.Pow(1f - t, 2f));
-                upgradeRing.transform.localScale = new Vector3(radius, radius, radius);
-                Color color = Color.Lerp(speedVisualProfile.Get(1).primaryColor,
-                    speedVisualProfile.Get(targetLevel).primaryColor, t);
-                color.a = 1f - t;
-                upgradeRing.startColor = color;
-                upgradeRing.endColor = color;
+                if (upgradeRing != null && timer <= primaryDuration)
+                {
+                    float radius;
+                    float alpha;
+                    if (timer < primaryIntroDuration)
+                    {
+                        float t = Mathf.Clamp01(timer / primaryIntroDuration);
+                        radius = Mathf.Lerp(0.12f, overshootRadius, 1f - Mathf.Pow(1f - t, 3f));
+                        alpha = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t * 2.2f));
+                    }
+                    else if (timer < primaryIntroDuration + primarySettleDuration)
+                    {
+                        float t = Mathf.Clamp01((timer - primaryIntroDuration) / primarySettleDuration);
+                        radius = Mathf.Lerp(overshootRadius, normalRadius, Mathf.SmoothStep(0f, 1f, t));
+                        alpha = 1f;
+                    }
+                    else if (timer < primaryHoldEnd)
+                    {
+                        radius = normalRadius * (1f + Mathf.Sin(timer * 10f) * 0.022f);
+                        alpha = 0.92f;
+                    }
+                    else
+                    {
+                        float t = Mathf.Clamp01((timer - primaryHoldEnd) / (primaryDuration - primaryHoldEnd));
+                        float eased = Mathf.SmoothStep(0f, 1f, t);
+                        radius = Mathf.Lerp(normalRadius, 0.05f, eased);
+                        alpha = 1f - eased;
+                    }
+
+                    upgradeRing.transform.localScale = Vector3.one * radius;
+                    Color color = Color.Lerp(speedVisualProfile.Get(1).primaryColor, targetColor,
+                        Mathf.Clamp01(timer / (primaryIntroDuration + primarySettleDuration)));
+                    color.a = alpha;
+                    upgradeRing.startColor = color;
+                    upgradeRing.endColor = color;
+                }
+                else if (upgradeRing != null)
+                {
+                    upgradeRing.enabled = false;
+                }
+
+                float circleScale;
+                float circleAlpha;
+                if (timer < circleIntroDuration)
+                {
+                    float t = Mathf.Clamp01(timer / circleIntroDuration);
+                    circleScale = Mathf.Lerp(0.1f, 0.7f, 1f - Mathf.Pow(1f - t, 3f));
+                    circleAlpha = Mathf.SmoothStep(0f, 0.88f, t);
+                }
+                else if (timer < circleHoldEnd)
+                {
+                    float pulse = Mathf.Sin((timer - circleIntroDuration) * 5.2f);
+                    circleScale = 0.66f * (1f + pulse * 0.045f);
+                    circleAlpha = 0.76f + pulse * 0.1f;
+                }
+                else
+                {
+                    float t = Mathf.Clamp01((timer - circleHoldEnd) / (circleDuration - circleHoldEnd));
+                    float eased = Mathf.SmoothStep(0f, 1f, t);
+                    circleScale = Mathf.Lerp(0.66f, 0.05f, eased);
+                    circleAlpha = Mathf.Lerp(0.76f, 0f, eased);
+                }
+
+                if (upgradeMagicCircle != null)
+                {
+                    upgradeMagicCircle.transform.localScale = Vector3.one * circleScale;
+                    upgradeMagicCircle.transform.Rotate(0f, 0f, 42f * Time.unscaledDeltaTime, Space.Self);
+                    Color color = circleColor;
+                    color.a = circleAlpha;
+                    upgradeMagicCircle.color = color;
+                }
+                if (upgradeMagicCircleGlow != null)
+                {
+                    upgradeMagicCircleGlow.transform.localScale = Vector3.one * circleScale * 1.12f;
+                    upgradeMagicCircleGlow.transform.Rotate(0f, 0f, -18f * Time.unscaledDeltaTime, Space.Self);
+                    Color glowColor = circleGlowColor;
+                    glowColor.a = circleAlpha * 0.34f;
+                    upgradeMagicCircleGlow.color = glowColor;
+                }
                 yield return null;
             }
-            upgradeRing.enabled = false;
+
+            if (sequence != upgradeRingSequence) yield break;
+            if (upgradeRing != null) upgradeRing.enabled = false;
+            if (upgradeMagicCircle != null) upgradeMagicCircle.enabled = false;
+            if (upgradeMagicCircleGlow != null) upgradeMagicCircleGlow.enabled = false;
         }
 
         private void HitTarget(Encounter encounter)
@@ -1290,7 +1393,7 @@ namespace PlayableAd
                 * (speedFeedback != null ? speedFeedback.CurrentImpactMultiplier : 1f);
             effectPool?.PlayImpact(encounter.root.transform.position + Vector3.up,
                 outcome != CollisionOutcome.SpeedLoss ? impactTier.secondaryColor : SpeedLossImpactColor,
-                strength * actualImpactScale);
+                strength * actualImpactScale, CurrentTier);
 
             bool launched = encounter.soldierKnockback != null
                 && encounter.soldierKnockback.Launch(soldierKnockbackPresentation,
@@ -1326,6 +1429,7 @@ namespace PlayableAd
         private IEnumerator BossClash()
         {
             bossSequence = true;
+            speedFeedback?.SetRunningTrailsVisible(false);
             flowController.EnterBoss();
             targetX = 0f;
             bool wins = CurrentTier >= playerSpeed.bossVictoryLevel;
@@ -1357,12 +1461,16 @@ namespace PlayableAd
 
             currentBossPhase = BossClashPhase.Contact;
             bossClashVisual.SetPhase(currentBossPhase);
+            if (bossRuntimeAnimator != null)
+                bossRuntimeAnimator.Play(BossClashHash, 0, 0f);
             audioFeedback?.PlayBossContact();
             speedFeedback?.PlayHighSpeedImpactSonicBoom(CurrentTier, 1.2f,
                 speedLevelFeedbackConfig != null && speedLevelFeedbackConfig.accessibilityReducedFlash);
             flashAlpha = Mathf.Max(flashAlpha, 0.48f);
             PunchCamera(bossClashPresentation.contactDuration, bossClashPresentation.contactShake, bossClashPresentation.contactFovPunch);
-            effectPool?.PlayImpact(Vector3.Lerp(runner.position, boss.position, 0.5f) + Vector3.up, wins ? bossClashPresentation.playerEnergy : bossClashPresentation.bossEnergy, 1.65f);
+            effectPool?.PlayImpact(Vector3.Lerp(runner.position, boss.position, 0.5f) + Vector3.up,
+                wins ? bossClashPresentation.playerEnergy : bossClashPresentation.bossEnergy,
+                1.65f, CurrentTier);
             timer = 0f;
             while (timer < bossClashPresentation.contactDuration)
             {
@@ -1435,7 +1543,8 @@ namespace PlayableAd
                 speedLevelFeedbackConfig != null && speedLevelFeedbackConfig.accessibilityReducedFlash);
             flashAlpha = Mathf.Max(flashAlpha, 0.56f);
             PunchCamera(bossClashPresentation.finishDuration, bossClashPresentation.finishShake, bossClashPresentation.finishFovPunch);
-            effectPool?.PlayImpact(Vector3.Lerp(runner.position, boss.position, 0.55f) + Vector3.up, bossClashPresentation.playerEnergy, 2f);
+            effectPool?.PlayImpact(Vector3.Lerp(runner.position, boss.position, 0.55f) + Vector3.up,
+                bossClashPresentation.playerEnergy, 2f, CurrentTier);
             Vector3 bossStart = boss.position;
             Vector3 bossEnd = bossStart + Vector3.forward * BossDeathFlightDistance;
             Quaternion bossStartRotation = boss.rotation;
@@ -1459,7 +1568,7 @@ namespace PlayableAd
             bossClashVisual.SetVisible(false);
             BreakCage();
             currentBossPhase = BossClashPhase.None;
-            yield return new WaitForSecondsRealtime(0.55f);
+            yield return StartCoroutine(PrincessWalkToPlayer());
             ending = true;
             bossSequence = false;
             flowController.EnterResult();
@@ -1507,6 +1616,7 @@ namespace PlayableAd
             callout = "TRY AGAIN!";
             calloutUntil = elapsed + 2f;
             bossSequence = false;
+            speedFeedback?.SetRunningTrailsVisible(true);
             flowController.EnterMainRun();
         }
 
@@ -1534,6 +1644,39 @@ namespace PlayableAd
                 SpawnImpactBurst(new Vector3(UnityEngine.Random.Range(-2f, 2f), 1.5f, tuning.bossDistance + 8f),
                     Color.HSVToRGB(UnityEngine.Random.value, 0.75f, 1f));
             }
+        }
+
+        private IEnumerator PrincessWalkToPlayer()
+        {
+            if (princess == null || runner == null) yield break;
+
+            if (princessRuntimeAnimator != null)
+                princessRuntimeAnimator.Play(PrincessIdleHash, 0, 0f);
+            yield return new WaitForSecondsRealtime(0.25f);
+
+            if (princessRuntimeAnimator != null)
+                princessRuntimeAnimator.Play(PrincessWalkHash, 0, 0f);
+
+            Vector3 start = princess.position;
+            Vector3 target = new Vector3(
+                runner.position.x,
+                start.y,
+                runner.position.z + 1.4f);
+            float distance = Vector3.Distance(start, target);
+            float duration = Mathf.Clamp(distance / 3.6f, 1f, 2.4f);
+            float timer = 0f;
+            while (timer < duration)
+            {
+                timer += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(timer / duration);
+                princess.position = Vector3.Lerp(
+                    start, target, Mathf.SmoothStep(0f, 1f, t));
+                yield return null;
+            }
+
+            princess.position = target;
+            if (princessRuntimeAnimator != null)
+                princessRuntimeAnimator.Play(PrincessIdleHash, 0, 0f);
         }
 
         private IEnumerator LaunchDebris(GameObject debris, int index)
@@ -1884,6 +2027,7 @@ namespace PlayableAd
             DestroyOwnedObject(whiteTexture);
             DestroyOwnedObject(buttonNormalTexture);
             DestroyOwnedObject(buttonActiveTexture);
+            DestroyOwnedObject(upgradeMagicCircleSprite);
         }
 
         private static void DestroyOwnedObject(UnityEngine.Object value)
@@ -1910,7 +2054,10 @@ namespace PlayableAd
             princess = princessRoot.transform;
             ReplaceableVisual princessReplaceable = princessRoot.AddComponent<ReplaceableVisual>();
             princessReplaceable.Build(princessVisualPrefab, princessAnimator, PrimitiveType.Cylinder, new Color(1f, 0.45f, 0.7f), new Vector3(0.75f, 1.8f, 0.75f));
-            princessRoot.SetActive(false);
+            princessRuntimeAnimator = princessReplaceable.Animator;
+            if (princessRuntimeAnimator != null)
+                princessRuntimeAnimator.Play(PrincessIdleHash, 0, 0f);
+            princessRoot.SetActive(true);
 
             cage = new GameObject("Cage").transform;
             cage.SetParent(worldRoot, false);
@@ -2381,6 +2528,34 @@ namespace PlayableAd
                 upgradeRing.SetPosition(i, new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)));
             }
             upgradeRing.enabled = false;
+
+            if (upgradeMagicCircleTexture == null) return;
+            upgradeMagicCircleSprite = Sprite.Create(upgradeMagicCircleTexture,
+                new Rect(0f, 0f, upgradeMagicCircleTexture.width, upgradeMagicCircleTexture.height),
+                new Vector2(0.5f, 0.5f), Mathf.Max(upgradeMagicCircleTexture.width, upgradeMagicCircleTexture.height) * 0.5f,
+                0, SpriteMeshType.FullRect);
+            upgradeMagicCircleSprite.name = "RuntimeUpgradeMagicCircle";
+            upgradeMagicCircleGlow = BuildUpgradeMagicCircleLayer(
+                "UpgradeMagicCircleGlow", parent, upgradeMagicCircleSprite, -0.84f, -1);
+            upgradeMagicCircle = BuildUpgradeMagicCircleLayer(
+                "UpgradeMagicCircleRunes", parent, upgradeMagicCircleSprite, -0.82f, 0);
+        }
+
+        private static SpriteRenderer BuildUpgradeMagicCircleLayer(
+            string objectName, Transform parent, Sprite sprite, float localY, int sortingOrder)
+        {
+            GameObject layer = new GameObject(objectName);
+            layer.transform.SetParent(parent, false);
+            layer.transform.localPosition = new Vector3(0f, localY, 0f);
+            layer.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            layer.transform.localScale = Vector3.one * 0.05f;
+            SpriteRenderer renderer = layer.AddComponent<SpriteRenderer>();
+            renderer.sprite = sprite;
+            renderer.sortingOrder = sortingOrder;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            renderer.receiveShadows = false;
+            renderer.enabled = false;
+            return renderer;
         }
 
         private GameObject CreateBox(string name, Vector3 position, Vector3 scale, Color color, Transform parent)
@@ -2398,7 +2573,7 @@ namespace PlayableAd
 
         private void SpawnImpactBurst(Vector3 position, Color color)
         {
-            effectPool?.PlayImpact(position, color, 1f);
+            effectPool?.PlayImpact(position, color, 1f, CurrentTier);
         }
 
         private void OnGUI()
