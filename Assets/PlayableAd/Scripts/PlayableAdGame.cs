@@ -5,6 +5,7 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.SceneManagement;
 using UnityEngine.Serialization;
+using UnityEngine.UI;
 
 namespace PlayableAd
 {
@@ -18,6 +19,7 @@ namespace PlayableAd
         private const int OpeningElixirGroupId = 1;
         private const float NaturalSpeedLossProtectionDuration = 3f;
         private const int MainRunLowSpeedRecoveryLevel = 4;
+        private const string RewardWingCallout = "CATCH THE WINGS TO FLY!";
         private const float ElixirVisualTargetHeight = 1.45f;
         private const float ElixirVisualBottomOffset = -0.72f;
         private static readonly Color SpeedLossImpactColor = new Color(0.82f, 0.035f, 0.025f, 0.76f);
@@ -28,6 +30,9 @@ namespace PlayableAd
         private const float RoadBorderCenterY = 0.25f;
         private const int RoadBorderSegmentsPerChunk = 5;
         private const int RoadBorderPedestalInterval = 2;
+        private const float RoadVisualWidth = 8.5f;
+        private const int DividerWallStartZone = 50;
+        private const int DividerWallEndZone = 57;
         private const float BossDeathFlightDistance = 9f;
         private const float BossDeathFlightHeight = 2.4f;
         private const float BossDeathAnimationDuration = 1.05f;
@@ -97,6 +102,10 @@ namespace PlayableAd
             [Range(1, 20), InspectorName("Stone Wall Count（石墙数量）")] public int stoneWallCount = 10;
             [Min(0f), InspectorName("Start Offset After Boss（Boss后起始偏移）")] public float startOffsetAfterBoss = 14f;
             [Range(0.1f, 1.2f), InspectorName("Dense Soldier Spacing（密集士兵间距）")] public float soldierSpacing = 0.22f;
+            [Range(0.35f, 0.75f), InspectorName("Flying Wing Screen Height（飞行翅膀屏幕高度）")] public float guideViewportHeight = 0.52f;
+            [Range(5f, 40f), InspectorName("Wing Landing Distance（翅膀落地距离）")] public float guideLandingDistance = 18f;
+            [Range(0.2f, 1.2f), InspectorName("Wing Ground Height（翅膀落地高度）")] public float guideGroundHeight = 0.45f;
+            [Range(0.1f, 0.6f), InspectorName("Wing Pickup Duration（翅膀拾取时长）")] public float guidePickupDuration = 0.28f;
         }
 
         [Serializable]
@@ -133,7 +142,7 @@ namespace PlayableAd
             {
                 enabled = true,
                 triggerDistance = 5f,
-                duration = 0.5f,
+                duration = 1f,
                 worldTimeScale = 0.25f,
                 enterDuration = 0.1f,
                 exitDuration = 0.1f
@@ -172,6 +181,28 @@ namespace PlayableAd
             public float documentZoneGap = 7f;
             [Min(0.1f), InspectorName("Document Single Content Length（单个内容占用长度）")]
             public float documentSingleContentLength = 1f;
+            [Header("Zone 50-57 Divider Wall（区块50-57分隔墙）")]
+            [InspectorName("Divider Wall Enabled（启用分隔墙）")]
+            public bool dividerWallEnabled = true;
+            [Range(4f, 8f), InspectorName("Divider Wall Segment Spacing（分隔墙段间距）")]
+            public float dividerWallSegmentSpacing = 6.15f;
+            [Range(0.15f, 0.8f), InspectorName("Divider Wall Collision Half Width（分隔墙碰撞半宽）")]
+            public float dividerWallCollisionHalfWidth = 0.38f;
+            [Range(30f, 120f), InspectorName("Divider Wall Activation Distance（分隔墙激活距离）")]
+            public float dividerWallActivationDistance = 80f;
+            [Header("Divider Wall Bullet Time（竖向墙子弹时间）")]
+            [InspectorName("Divider Wall Bullet Time Enabled（启用竖向墙子弹时间）")]
+            public bool dividerWallBulletTimeEnabled = true;
+            [Min(0f), InspectorName("Divider Wall Bullet Time Trigger Distance（竖向墙子弹时间触发距离）")]
+            public float dividerWallBulletTimeTriggerDistance = 15f;
+            [Min(0f), InspectorName("Divider Wall Bullet Time Duration（竖向墙子弹时间持续时长）")]
+            public float dividerWallBulletTimeDuration = 1.2f;
+            [Range(0.01f, 1f), InspectorName("Divider Wall World Time Scale（竖向墙世界时间倍率）")]
+            public float dividerWallWorldTimeScale = 0.25f;
+            [Min(0f), InspectorName("Divider Wall Enter Duration（竖向墙进入时长）")]
+            public float dividerWallEnterDuration = 0.1f;
+            [Min(0.1f), InspectorName("Divider Wall Exit Duration（竖向墙退出时长）")]
+            public float dividerWallExitDuration = 0.1f;
             [Range(1, PlayerSpeedSettings.RequiredLevelCount), InspectorName("Document Elite Level（文档精英等级）")]
             public int documentEliteLevel = 8;
             [Min(0f), InspectorName("Document Elite Speed Penalty（文档精英速度惩罚）")]
@@ -234,7 +265,7 @@ namespace PlayableAd
                 {
                     if (tutorialWallBulletTime == null) tutorialWallBulletTime = new BulletTimeSettings();
                     tutorialWallBulletTime.triggerDistance = 5f;
-                    tutorialWallBulletTime.duration = 0.5f;
+                    tutorialWallBulletTime.duration = 1f;
                     tutorialWallBulletTime.enterDuration = 0.1f;
                     tutorialWallBulletTime.exitDuration = 0.1f;
                     documentEliteSpeedPenalty = 0.5f;
@@ -494,11 +525,14 @@ namespace PlayableAd
         [SerializeField, InspectorName("Level 1 Soldier Icon（1级士兵图标）")] private Sprite speedBarSoldierHintIcon;
         [SerializeField, InspectorName("Stone Wall Icon（石墙图标）")] private Sprite speedBarStoneWallHintIcon;
         [SerializeField, InspectorName("Locked Stone Wall Icon（未解锁石墙图标）")] private Sprite speedBarStoneWallLockedHintIcon;
+        [SerializeField, InspectorName("Level 8 Elite Icon（8级精英图标）")] private Sprite speedBarEliteHintIcon;
+        [SerializeField, InspectorName("Locked Level 8 Elite Icon（未解锁8级精英图标）")] private Sprite speedBarEliteLockedHintIcon;
+        [SerializeField, InspectorName("Level 10 Boss Icon（10级Boss图标）")] private Sprite speedBarBossHintIcon;
+        [SerializeField, InspectorName("Locked Level 10 Boss Icon（未解锁10级Boss图标）")] private Sprite speedBarBossLockedHintIcon;
 
         [Header("External speed VFX（外部速度特效）")]
         [SerializeField, InspectorName("Running Wind Trail Prefab（跑步风痕预制体）")] private GameObject runningWindTrailPrefab;
         [SerializeField, InspectorName("Acceleration Aura Prefab（加速法阵预制体）")] private GameObject accelerationAuraPrefab;
-        [SerializeField, InspectorName("Invulnerability Magic Circle Texture（无敌法阵贴图）")] private Texture2D upgradeMagicCircleTexture;
 
         [Header("Elixir presentation（药剂表现）")]
         [SerializeField, InspectorName("Elixir Presentation（药剂表现设置）")] private ElixirPresentationSettings elixirPresentation = new ElixirPresentationSettings();
@@ -628,6 +662,7 @@ namespace PlayableAd
         private bool rewardStageActive;
         private bool rewardStageBuilt;
         private bool rewardStageCompleted;
+        private bool rewardStageFinishing;
         private float rewardStageEndZ;
         private bool ending;
         private BossClashPhase currentBossPhase;
@@ -641,6 +676,7 @@ namespace PlayableAd
         [NonSerialized] private GUIStyle buttonStyle;
         [NonSerialized] private GUIStyle smashTitleStyle;
         [NonSerialized] private GUIStyle smashSubtitleStyle;
+        [NonSerialized] private GUIStyle rewardWingCalloutStyle;
         [NonSerialized] private GUIStyle powerUpStyle;
         [NonSerialized] private GUIStyle powerUpShadowStyle;
         [NonSerialized] private GUIStyle tutorialBulletWarningStyle;
@@ -650,10 +686,6 @@ namespace PlayableAd
         private float powerUpNoticeStart;
         private float powerUpNoticeUntil;
         private bool tutorialBulletTimeWarningActive;
-        private LineRenderer upgradeRing;
-        private SpriteRenderer upgradeMagicCircle;
-        private SpriteRenderer upgradeMagicCircleGlow;
-        private Sprite upgradeMagicCircleSprite;
         private float lastImpactTime;
         private float lastNormalShakeTime;
         private int comboPitchIndex;
@@ -673,6 +705,16 @@ namespace PlayableAd
         private int firstRelevantEncounterIndex;
         private bool tier1SoldierVisualAvailable;
         private bool tier4SoldierVisualAvailable;
+        private GameObject dividerWallRoot;
+        private float dividerWallStartZ;
+        private float dividerWallEndZ;
+        private float dividerWallX;
+        private int dividerWallSafeSide = 1;
+        private bool dividerWallBulletTimeTriggered;
+        private bool restartRequested;
+        private GameObject restartButtonCanvas;
+        private RectTransform restartSafeAreaRoot;
+        private Rect lastRestartSafeArea;
 
         public PlayerSpeedController SpeedController => speedController;
         private bool SmallPotionInvulnerabilityActive => smallPotionInvulnerabilityCount > 0;
@@ -772,6 +814,7 @@ namespace PlayableAd
             rewardStageActive = false;
             rewardStageBuilt = false;
             rewardStageCompleted = false;
+            rewardStageFinishing = false;
             rewardStageEndZ = 0f;
             rewardStageWallRoots.Clear();
             naturalSpeedLossProtectedUntil = 0f;
@@ -779,6 +822,7 @@ namespace PlayableAd
             smallPotionInvulnerabilityCount = 0;
             tutorialElixirVisualUntil = 0f;
             smallPotionGoldOverlayAlpha = 0f;
+            dividerWallBulletTimeTriggered = false;
             flowController?.ResetToIntro();
             comboManager?.ResetCombo();
             numberCombatSystem?.RefreshPlayerLevel();
@@ -811,11 +855,13 @@ namespace PlayableAd
             rewardStageActive = false;
             rewardStageBuilt = false;
             rewardStageCompleted = false;
+            rewardStageFinishing = false;
             rewardStageEndZ = 0f;
             rewardStageWallRoots.Clear();
             smallPotionInvulnerabilityCount = 0;
             tutorialElixirVisualUntil = 0f;
             smallPotionGoldOverlayAlpha = 0f;
+            dividerWallBulletTimeTriggered = false;
             powerUpNoticeStart = 0f;
             powerUpNoticeUntil = 0f;
             comboManager?.ResetCombo();
@@ -851,7 +897,10 @@ namespace PlayableAd
             UpdateSmallPotionInvulnerabilityPresentation();
             UpdateTutorialBulletTimeWarningState();
             UpdateWorldVisibility();
-            bool movementActive = gameplayStarted && !ending && flowController != null && flowController.IsGameplayActive && Time.timeScale > 0f;
+            UpdateDividerWallVisibility();
+            UpdateRestartButtonSafeArea();
+            bool movementActive = gameplayStarted && !ending && !rewardStageFinishing
+                && flowController != null && flowController.IsGameplayActive && Time.timeScale > 0f;
             if (!movementActive)
             {
                 forwardMotion?.Tick(0f, false);
@@ -875,6 +924,8 @@ namespace PlayableAd
             if (!bossSequence)
             {
                 MoveRunner();
+                UpdateDividerWallBulletTime();
+                BlockDividerWallCrossing();
                 ProcessEncounters();
                 RecoverAtMinimumSpeedAfterTutorial();
                 if (rewardStageActive)
@@ -1656,7 +1707,6 @@ namespace PlayableAd
         {
             bool visualInvulnerabilityActive = SmallPotionInvulnerabilityActive
                 || Time.unscaledTime < tutorialElixirVisualUntil;
-            speedFeedback?.SetInvulnerabilityAuraActive(visualInvulnerabilityActive);
             float fadeDuration = tuning != null
                 ? Mathf.Max(0.02f, tuning.smallPotionFilterFadeDuration)
                 : 0.1f;
@@ -1666,43 +1716,6 @@ namespace PlayableAd
             smallPotionGoldOverlayAlpha = Mathf.MoveTowards(smallPotionGoldOverlayAlpha,
                 targetOverlayAlpha, Time.unscaledDeltaTime * 0.5f / fadeDuration);
 
-            if (!visualInvulnerabilityActive)
-            {
-                if (upgradeRing != null) upgradeRing.enabled = false;
-                if (upgradeMagicCircle != null) upgradeMagicCircle.enabled = false;
-                if (upgradeMagicCircleGlow != null) upgradeMagicCircleGlow.enabled = false;
-                return;
-            }
-
-            float pulse = 1f + Mathf.Sin(Time.unscaledTime * 7.5f) * 0.035f;
-            float radius = (elixirPresentation != null
-                ? Mathf.Max(0.4f, elixirPresentation.energyRingMaxRadius)
-                : 1.25f) * pulse;
-            Color ringColor = new Color(1f, 0.72f, 0.12f, 0.78f);
-            if (upgradeRing != null)
-            {
-                upgradeRing.enabled = true;
-                upgradeRing.transform.localScale = Vector3.one * radius;
-                upgradeRing.transform.Rotate(0f, 34f * Time.unscaledDeltaTime, 0f, Space.Self);
-                upgradeRing.startColor = ringColor;
-                upgradeRing.endColor = ringColor;
-            }
-
-            float circleScale = 0.7f * pulse;
-            if (upgradeMagicCircle != null)
-            {
-                upgradeMagicCircle.enabled = true;
-                upgradeMagicCircle.transform.localScale = Vector3.one * circleScale;
-                upgradeMagicCircle.transform.Rotate(0f, 0f, 38f * Time.unscaledDeltaTime, Space.Self);
-                upgradeMagicCircle.color = new Color(1f, 0.76f, 0.16f, 0.82f);
-            }
-            if (upgradeMagicCircleGlow != null)
-            {
-                upgradeMagicCircleGlow.enabled = true;
-                upgradeMagicCircleGlow.transform.localScale = Vector3.one * circleScale * 1.14f;
-                upgradeMagicCircleGlow.transform.Rotate(0f, 0f, -17f * Time.unscaledDeltaTime, Space.Self);
-                upgradeMagicCircleGlow.color = new Color(1f, 0.58f, 0.06f, 0.3f);
-            }
         }
 
         private void HitTarget(Encounter encounter)
@@ -1713,7 +1726,7 @@ namespace PlayableAd
             UpdateGameplayCombo(encounter, resolution);
             if (resolution == ObstacleResolutionType.Boosted)
             {
-                callout = "SMASH\nSPEED UP";
+                callout = rewardStageActive ? RewardWingCallout : "SMASH\nSPEED UP";
                 calloutUntil = elapsed + 0.75f;
                 smashEffectStart = Time.unscaledTime;
                 smashEffectUntil = smashEffectStart + 0.28f;
@@ -1873,6 +1886,48 @@ namespace PlayableAd
 
             rewardStageCompleted = true;
             rewardStageActive = false;
+            rewardStageFinishing = true;
+            runner.position = new Vector3(runner.position.x, runner.position.y, rewardStageEndZ);
+            CancelDrag();
+            forwardMotion?.Tick(0f, false);
+            StartCoroutine(FinishRewardStageWithWingPickup());
+        }
+
+        private IEnumerator FinishRewardStageWithWingPickup()
+        {
+            if (rewardGuideBubble != null && runner != null)
+            {
+                rewardGuideBubble.position = GetRewardGuideLandingPosition();
+                FaceRewardGuideTowardCamera(true);
+                Vector3 start = rewardGuideBubble.position;
+                Vector3 startScale = rewardGuideBubble.localScale;
+                float duration = rewardRun != null
+                    ? Mathf.Max(0.1f, rewardRun.guidePickupDuration)
+                    : 0.28f;
+                float timer = 0f;
+                while (timer < duration && rewardGuideBubble != null)
+                {
+                    timer += Time.unscaledDeltaTime;
+                    float t = Mathf.Clamp01(timer / duration);
+                    float eased = Mathf.SmoothStep(0f, 1f, t);
+                    Vector3 pickupPoint = runner.position + new Vector3(0f, 0.55f, 0.12f);
+                    rewardGuideBubble.position = Vector3.Lerp(start, pickupPoint, eased);
+                    rewardGuideBubble.localScale = Vector3.Lerp(startScale,
+                        startScale * 0.58f, eased);
+                    float alpha = 1f - Mathf.SmoothStep(0.72f, 1f, t);
+                    SetRewardGuideBubbleAlpha(rewardGuideBubbleCore, alpha);
+                    SetRewardGuideBubbleAlpha(rewardGuideBubbleInnerGlow, alpha * 0.44f);
+                    SetRewardGuideBubbleAlpha(rewardGuideBubbleOuterGlow, alpha * 0.28f);
+                    if (rewardGuideBubbleLight != null)
+                        rewardGuideBubbleLight.intensity = alpha * 1.35f;
+                    yield return null;
+                }
+
+                flashAlpha = Mathf.Max(flashAlpha, 0.3f);
+                DestroyRewardGuideBubble();
+            }
+
+            rewardStageFinishing = false;
             ending = true;
             SetGameplayHudVisible(false);
             flowController.EnterResult();
@@ -2136,6 +2191,7 @@ namespace PlayableAd
             rewardStageActive = true;
             bossVictoryFraming = false;
             rewardStageCompleted = false;
+            rewardStageFinishing = false;
             rewardStageEndZ = CourseEndZ;
             bossSequence = false;
             ending = false;
@@ -2361,13 +2417,35 @@ namespace PlayableAd
 
             Vector3 velocity = Vector3.zero;
             float timer = 0f;
-            while (rewardGuideBubble != null)
+            bool landingStarted = false;
+            Vector3 landingStart = Vector3.zero;
+            while (rewardGuideBubble != null && rewardStageActive)
             {
                 timer += Time.unscaledDeltaTime;
-                Vector3 target = GetRewardGuideScreenAnchor();
-                rewardGuideBubble.position = Vector3.SmoothDamp(
-                    rewardGuideBubble.position, target, ref velocity, 0.2f, 40f,
-                    Time.unscaledDeltaTime);
+                float landingDistance = rewardRun != null
+                    ? Mathf.Max(1f, rewardRun.guideLandingDistance)
+                    : 18f;
+                float remainingDistance = runner != null
+                    ? rewardStageEndZ - runner.position.z
+                    : landingDistance;
+                if (remainingDistance <= landingDistance)
+                {
+                    if (!landingStarted)
+                    {
+                        landingStarted = true;
+                        landingStart = rewardGuideBubble.position;
+                    }
+                    float landingT = Mathf.Clamp01(1f - remainingDistance / landingDistance);
+                    rewardGuideBubble.position = Vector3.Lerp(landingStart,
+                        GetRewardGuideLandingPosition(), Mathf.SmoothStep(0f, 1f, landingT));
+                }
+                else
+                {
+                    Vector3 target = GetRewardGuideScreenAnchor();
+                    rewardGuideBubble.position = Vector3.SmoothDamp(
+                        rewardGuideBubble.position, target, ref velocity, 0.2f, 40f,
+                        Time.unscaledDeltaTime);
+                }
                 FaceRewardGuideTowardCamera(false);
                 UpdateRewardGuideBubbleAppearance(timer, 1f);
                 yield return null;
@@ -2448,7 +2526,7 @@ namespace PlayableAd
         private Vector3 GetRewardGuideScreenAnchor()
         {
             if (gameCamera == null)
-                return runner != null ? runner.position + new Vector3(0f, 3f, 6f) : Vector3.up * 3f;
+                return runner != null ? runner.position + new Vector3(0f, 2.2f, 6f) : Vector3.up * 2.2f;
 
             float depth = 12f;
             if (runner != null)
@@ -2457,7 +2535,19 @@ namespace PlayableAd
                     gameCamera.transform.forward);
             }
             depth = Mathf.Max(7f, depth);
-            return gameCamera.ViewportToWorldPoint(new Vector3(0.5f, 0.78f, depth));
+            float viewportHeight = rewardRun != null
+                ? Mathf.Clamp(rewardRun.guideViewportHeight, 0.35f, 0.75f)
+                : 0.52f;
+            return gameCamera.ViewportToWorldPoint(new Vector3(0.5f, viewportHeight, depth));
+        }
+
+        private Vector3 GetRewardGuideLandingPosition()
+        {
+            float x = runner != null ? runner.position.x : 0f;
+            float y = rewardRun != null
+                ? Mathf.Max(0.2f, rewardRun.guideGroundHeight)
+                : 0.45f;
+            return new Vector3(x, y, rewardStageEndZ);
         }
 
         private void FaceRewardGuideTowardCamera(bool immediate)
@@ -2562,9 +2652,107 @@ namespace PlayableAd
             speedBarView.Initialize(speedController, speedVisualProfile,
                 speedBarHintFrame, speedBarSoldierHintIcon, speedBarStoneWallHintIcon,
                 speedBarStoneWallLockedHintIcon,
+                speedBarEliteHintIcon, speedBarEliteLockedHintIcon,
+                speedBarBossHintIcon, speedBarBossLockedHintIcon,
                 Mathf.Clamp(tuning.stoneWallSafeSpeedLevel, 1, speedController.MaxLevel),
                 runner, gameCamera);
             BuildComboSystem(canvasRoot);
+            BuildRestartButton();
+        }
+
+        private void BuildRestartButton()
+        {
+            EnsureRuntimeEventSystem();
+
+            GameObject canvasObject = new GameObject("RestartButtonCanvas", typeof(RectTransform));
+            canvasObject.transform.SetParent(transform, false);
+            restartButtonCanvas = canvasObject;
+            Canvas canvas = canvasObject.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.sortingOrder = 80;
+            CanvasScaler scaler = canvasObject.AddComponent<CanvasScaler>();
+            scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080f, 1920f);
+            scaler.screenMatchMode = CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;
+            scaler.matchWidthOrHeight = 0.5f;
+            canvasObject.AddComponent<GraphicRaycaster>();
+
+            GameObject safeAreaObject = new GameObject("SafeArea", typeof(RectTransform));
+            safeAreaObject.transform.SetParent(canvasObject.transform, false);
+            restartSafeAreaRoot = safeAreaObject.GetComponent<RectTransform>();
+            ApplyRestartButtonSafeArea();
+
+            GameObject buttonObject = new GameObject("RestartButton", typeof(RectTransform));
+            buttonObject.transform.SetParent(restartSafeAreaRoot, false);
+            RectTransform buttonRect = buttonObject.GetComponent<RectTransform>();
+            buttonRect.anchorMin = buttonRect.anchorMax = Vector2.zero;
+            buttonRect.pivot = Vector2.zero;
+            buttonRect.anchoredPosition = new Vector2(28f, 28f);
+            buttonRect.sizeDelta = new Vector2(216f, 76f);
+
+            Image background = buttonObject.AddComponent<Image>();
+            background.sprite = Resources.GetBuiltinResource<Sprite>("UI/Skin/UISprite.psd");
+            background.type = background.sprite != null ? Image.Type.Sliced : Image.Type.Simple;
+            background.color = new Color(0.035f, 0.045f, 0.055f, 0.9f);
+
+            Outline outline = buttonObject.AddComponent<Outline>();
+            outline.effectColor = new Color(0.82f, 0.88f, 0.92f, 0.85f);
+            outline.effectDistance = new Vector2(2f, -2f);
+            outline.useGraphicAlpha = true;
+
+            Button button = buttonObject.AddComponent<Button>();
+            button.targetGraphic = background;
+            ColorBlock colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1f, 0.9f, 0.64f, 1f);
+            colors.pressedColor = new Color(0.72f, 0.78f, 0.82f, 1f);
+            colors.selectedColor = colors.highlightedColor;
+            colors.fadeDuration = 0.06f;
+            button.colors = colors;
+            button.onClick.AddListener(RestartFromBeginning);
+
+            GameObject labelObject = new GameObject("Label", typeof(RectTransform));
+            labelObject.transform.SetParent(buttonRect, false);
+            RectTransform labelRect = labelObject.GetComponent<RectTransform>();
+            labelRect.anchorMin = Vector2.zero;
+            labelRect.anchorMax = Vector2.one;
+            labelRect.offsetMin = new Vector2(10f, 4f);
+            labelRect.offsetMax = new Vector2(-10f, -4f);
+            Text label = labelObject.AddComponent<Text>();
+            label.text = "RESTART";
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.fontSize = 31;
+            label.fontStyle = FontStyle.Bold;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = Color.white;
+            label.raycastTarget = false;
+        }
+
+        private void UpdateRestartButtonSafeArea()
+        {
+            if (restartSafeAreaRoot != null && Screen.safeArea != lastRestartSafeArea)
+                ApplyRestartButtonSafeArea();
+        }
+
+        private void ApplyRestartButtonSafeArea()
+        {
+            if (restartSafeAreaRoot == null || Screen.width <= 0 || Screen.height <= 0) return;
+            Rect safeArea = Screen.safeArea;
+            restartSafeAreaRoot.anchorMin = new Vector2(
+                safeArea.xMin / Screen.width, safeArea.yMin / Screen.height);
+            restartSafeAreaRoot.anchorMax = new Vector2(
+                safeArea.xMax / Screen.width, safeArea.yMax / Screen.height);
+            restartSafeAreaRoot.offsetMin = Vector2.zero;
+            restartSafeAreaRoot.offsetMax = Vector2.zero;
+            lastRestartSafeArea = safeArea;
+        }
+
+        private void EnsureRuntimeEventSystem()
+        {
+            if (EventSystem.current != null) return;
+            GameObject eventSystemObject = new GameObject("RuntimeEventSystem",
+                typeof(EventSystem), typeof(StandaloneInputModule));
+            eventSystemObject.transform.SetParent(transform, false);
         }
 
         private void BuildComboSystem(GameObject canvasRoot)
@@ -2680,8 +2868,7 @@ namespace PlayableAd
         {
             float courseEndZ = CourseEndZ;
             float roadLength = courseEndZ + 28f;
-            const float roadWidth = 8.5f;
-            GameObject road = CreateBox("Road", new Vector3(0f, -0.3f, courseEndZ * 0.5f), new Vector3(roadWidth, 0.5f, roadLength), environment.roadColor, worldRoot);
+            GameObject road = CreateBox("Road", new Vector3(0f, -0.3f, courseEndZ * 0.5f), new Vector3(RoadVisualWidth, 0.5f, roadLength), environment.roadColor, worldRoot);
             if (roadSurfaceMaterial != null)
                 road.GetComponent<Renderer>().sharedMaterial = roadSurfaceMaterial;
             GameObject leftWall = CreateBox("LeftWall", new Vector3(-4.7f, 0.25f, courseEndZ * 0.5f), new Vector3(1.1f, 1.1f, roadLength), environment.wallColor, worldRoot);
@@ -2690,7 +2877,7 @@ namespace PlayableAd
             CreateRoadBoundary("LeftRoadBoundary", -4.12f);
             CreateRoadBoundary("RightRoadBoundary", 4.12f);
 
-            BuildLaneDividers(courseEndZ, roadLength, roadWidth * 0.5f);
+            BuildLaneDividers(courseEndZ, roadLength, RoadVisualWidth * 0.5f);
 
             BuildRoadBands(courseEndZ);
             if (!hasAuthoredRoadBorders)
@@ -2923,7 +3110,7 @@ namespace PlayableAd
             if (roadBorderFlamePrefab == null) return;
             GameObject flame = Instantiate(roadBorderFlamePrefab, worldRoot);
             flame.name = (side < 0f ? "Left" : "Right") + "RoadBorderFlame_" + segmentIndex;
-            flame.transform.localPosition = new Vector3(side * RoadBorderCenterX, 0.72f, z);
+            flame.transform.localPosition = new Vector3(side * RoadBorderCenterX, 1.72f, z);
             flame.transform.localRotation = Quaternion.identity;
             Renderer[] renderers = flame.GetComponentsInChildren<Renderer>(true);
             for (int i = 0; i < renderers.Length; i++)
@@ -2983,7 +3170,6 @@ namespace PlayableAd
             speedFeedback = root.AddComponent<SpeedVisualFeedback>();
             speedFeedback.Initialize(speedVisualProfile, visualPerformance, runningWindTrailPrefab,
                 accelerationAuraPrefab);
-            BuildInvulnerabilityCircle(root.transform);
             audioFeedback = root.AddComponent<AudioFeedbackController>();
             audioFeedback.Initialize(audioPresentation);
             visualTimeScale = gameObject.GetComponent<VisualTimeScaleController>();
@@ -3018,7 +3204,6 @@ namespace PlayableAd
             DestroyOwnedObject(penaltyEdgeTexture);
             DestroyOwnedObject(buttonNormalTexture);
             DestroyOwnedObject(buttonActiveTexture);
-            DestroyOwnedObject(upgradeMagicCircleSprite);
             for (int i = 0; i < ownedRuntimeMeshes.Count; i++)
                 DestroyOwnedObject(ownedRuntimeMeshes[i]);
             ownedRuntimeMeshes.Clear();
@@ -3042,7 +3227,7 @@ namespace PlayableAd
             bossVisual = bossReplaceable.VisualRoot;
             bossRuntimeAnimator = bossReplaceable.Animator;
             CharacterGroundShadow bossShadow = bossRoot.AddComponent<CharacterGroundShadow>();
-            bossShadow.Initialize(new Vector2(3.6f, 1.35f), environment.shadowStrength, environment.lightEuler);
+            bossShadow.Initialize(new Vector2(2.88f, 1.08f), environment.shadowStrength, environment.lightEuler);
             if (bossRuntimeAnimator != null)
             {
                 BossAnimationEvents animationEvents = bossRuntimeAnimator.GetComponent<BossAnimationEvents>();
@@ -3228,11 +3413,157 @@ namespace PlayableAd
         {
             MainRunZone[] layout = CreateDocumentMainRunLayout();
             float currentZ = tutorialEndZ + Mathf.Max(0f, tuning.documentMainRunStartOffset);
+            float dividerStart = float.NaN;
+            float dividerEnd = float.NaN;
             for (int i = 0; i < layout.Length; i++)
             {
+                int zoneNumber = i + 1;
+                if (zoneNumber == DividerWallStartZone) dividerStart = currentZ;
+                float zoneLength = GetDocumentZoneLength(layout[i], i);
                 BuildDocumentZone(layout[i], i, currentZ);
-                currentZ += GetDocumentZoneLength(layout[i], i)
-                    + Mathf.Max(0f, tuning.documentZoneGap);
+                if (zoneNumber == DividerWallEndZone) dividerEnd = currentZ + zoneLength;
+                currentZ += zoneLength + Mathf.Max(0f, tuning.documentZoneGap);
+            }
+
+            if (tuning.dividerWallEnabled && !float.IsNaN(dividerStart)
+                && !float.IsNaN(dividerEnd) && dividerEnd > dividerStart)
+                BuildDividerWall(dividerStart, dividerEnd);
+        }
+
+        private void BuildDividerWall(float startZ, float endZ)
+        {
+            GameObject sourcePrefab = prefab != null ? prefab.stoneWallPrefab : null;
+            if (sourcePrefab == null) return;
+
+            MeshFilter[] sourceFilters = sourcePrefab.GetComponentsInChildren<MeshFilter>(true);
+            if (sourceFilters == null || sourceFilters.Length == 0) return;
+
+            float spacing = Mathf.Clamp(tuning.dividerWallSegmentSpacing, 4f, 8f);
+            int segmentCount = Mathf.Max(1, Mathf.CeilToInt((endZ - startZ) / spacing));
+            dividerWallX = -RoadVisualWidth / 6f;
+            dividerWallStartZ = startZ;
+            dividerWallEndZ = endZ;
+
+            var combines = new List<CombineInstance>(segmentCount * sourceFilters.Length);
+            Matrix4x4 sourceRootInverse = sourcePrefab.transform.worldToLocalMatrix;
+            Material wallMaterial = null;
+            for (int segment = 0; segment < segmentCount; segment++)
+            {
+                float segmentZ = startZ + (segment + 0.5f) * spacing;
+                Matrix4x4 placement = Matrix4x4.TRS(
+                    new Vector3(dividerWallX, 0f, segmentZ),
+                    Quaternion.Euler(0f, 90f, 0f), Vector3.one);
+                for (int filterIndex = 0; filterIndex < sourceFilters.Length; filterIndex++)
+                {
+                    MeshFilter sourceFilter = sourceFilters[filterIndex];
+                    if (sourceFilter == null || sourceFilter.sharedMesh == null) continue;
+                    Matrix4x4 assetMatrix = sourceRootInverse * sourceFilter.transform.localToWorldMatrix;
+                    AddMeshSubmeshes(combines, sourceFilter.sharedMesh, placement * assetMatrix);
+                    if (wallMaterial == null)
+                    {
+                        Renderer sourceRenderer = sourceFilter.GetComponent<Renderer>();
+                        if (sourceRenderer != null) wallMaterial = sourceRenderer.sharedMaterial;
+                    }
+                }
+            }
+            if (combines.Count == 0) return;
+
+            Mesh mesh = new Mesh
+            {
+                name = "Zone50To57DividerWallMesh",
+                indexFormat = UnityEngine.Rendering.IndexFormat.UInt32
+            };
+            mesh.CombineMeshes(combines.ToArray(), true, true, false);
+            mesh.RecalculateBounds();
+            ownedRuntimeMeshes.Add(mesh);
+
+            dividerWallRoot = new GameObject("Zone50To57DividerWall");
+            dividerWallRoot.transform.SetParent(worldRoot, false);
+            dividerWallRoot.AddComponent<MeshFilter>().sharedMesh = mesh;
+            MeshRenderer renderer = dividerWallRoot.AddComponent<MeshRenderer>();
+            renderer.sharedMaterial = wallMaterial != null
+                ? wallMaterial
+                : RuntimeStyle.CreateMaterial(new Color(0.4f, 0.43f, 0.44f), 0f, 0.28f);
+            bool lowQuality = visualPerformance != null && visualPerformance.lowQualityMode;
+            renderer.shadowCastingMode = lowQuality
+                ? UnityEngine.Rendering.ShadowCastingMode.Off
+                : UnityEngine.Rendering.ShadowCastingMode.On;
+            renderer.receiveShadows = !lowQuality;
+
+            dividerWallSafeSide = runner != null && runner.position.x < dividerWallX ? -1 : 1;
+            dividerWallRoot.SetActive(false);
+        }
+
+        private void UpdateDividerWallVisibility()
+        {
+            if (dividerWallRoot == null || runner == null) return;
+            float activationDistance = tuning != null
+                ? Mathf.Clamp(tuning.dividerWallActivationDistance, 30f, 120f)
+                : 80f;
+            bool visible = runner.position.z >= dividerWallStartZ - activationDistance
+                && runner.position.z <= dividerWallEndZ + 12f;
+            if (dividerWallRoot.activeSelf != visible) dividerWallRoot.SetActive(visible);
+        }
+
+        private void UpdateDividerWallBulletTime()
+        {
+            if (dividerWallRoot == null || runner == null || tuning == null
+                || !tuning.dividerWallBulletTimeEnabled)
+                return;
+
+            float triggerDistance = Mathf.Max(0f,
+                tuning.dividerWallBulletTimeTriggerDistance);
+            float distanceToWall = dividerWallStartZ - runner.position.z;
+
+            if (!dividerWallBulletTimeTriggered && distanceToWall <= triggerDistance
+                && distanceToWall > 0f)
+            {
+                dividerWallBulletTimeTriggered = true;
+                BulletTimeManager manager = BulletTimeManager.Instance;
+                if (manager != null)
+                {
+                    var settings = new BulletTimeSettings
+                    {
+                        enabled = true,
+                        triggerDistance = triggerDistance,
+                        // BulletTimeManager counts this with unscaled real-world time.
+                        duration = Mathf.Max(0f, tuning.dividerWallBulletTimeDuration),
+                        worldTimeScale = tuning.dividerWallWorldTimeScale,
+                        enterDuration = tuning.dividerWallEnterDuration,
+                        exitDuration = tuning.dividerWallExitDuration
+                    };
+                    manager.StartBulletTime(settings);
+                }
+            }
+        }
+
+        private void BlockDividerWallCrossing()
+        {
+            if (dividerWallRoot == null || runner == null || tuning == null) return;
+
+            float deltaX = runner.position.x - dividerWallX;
+            int currentSide = deltaX < 0f ? -1 : 1;
+            bool insideLongitudinalRange = runner.position.z >= dividerWallStartZ - 0.35f
+                && runner.position.z <= dividerWallEndZ + 0.35f;
+            if (!insideLongitudinalRange)
+            {
+                dividerWallSafeSide = currentSide;
+                return;
+            }
+
+            float collisionHalfWidth = Mathf.Clamp(tuning.dividerWallCollisionHalfWidth, 0.15f, 0.8f);
+            float blockingX = dividerWallX + dividerWallSafeSide * collisionHalfWidth;
+            if (dividerWallSafeSide < 0)
+            {
+                if (runner.position.x > blockingX)
+                    runner.position = new Vector3(blockingX, runner.position.y, runner.position.z);
+                targetX = Mathf.Min(targetX, blockingX);
+            }
+            else
+            {
+                if (runner.position.x < blockingX)
+                    runner.position = new Vector3(blockingX, runner.position.y, runner.position.z);
+                targetX = Mathf.Max(targetX, blockingX);
             }
         }
 
@@ -3949,56 +4280,6 @@ namespace PlayableAd
             widthScale = 2f / 3f;
         }
 
-        private void BuildInvulnerabilityCircle(Transform parent)
-        {
-            GameObject ringObject = new GameObject("InvulnerabilityEnergyRing");
-            ringObject.transform.SetParent(parent, false);
-            ringObject.transform.localPosition = new Vector3(0f, -0.85f, 0f);
-            upgradeRing = ringObject.AddComponent<LineRenderer>();
-            upgradeRing.useWorldSpace = false;
-            upgradeRing.loop = true;
-            upgradeRing.positionCount = 36;
-            upgradeRing.startWidth = 0.09f;
-            upgradeRing.endWidth = 0.09f;
-            upgradeRing.sharedMaterial = speedVisualProfile.lineMaterial != null
-                ? speedVisualProfile.lineMaterial
-                : RuntimeStyle.CreateMaterial(Color.white, 0f, 0.1f);
-            for (int i = 0; i < 36; i++)
-            {
-                float angle = i / 36f * Mathf.PI * 2f;
-                upgradeRing.SetPosition(i, new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle)));
-            }
-            upgradeRing.enabled = false;
-
-            if (upgradeMagicCircleTexture == null) return;
-            upgradeMagicCircleSprite = Sprite.Create(upgradeMagicCircleTexture,
-                new Rect(0f, 0f, upgradeMagicCircleTexture.width, upgradeMagicCircleTexture.height),
-                new Vector2(0.5f, 0.5f), Mathf.Max(upgradeMagicCircleTexture.width, upgradeMagicCircleTexture.height) * 0.5f,
-                0, SpriteMeshType.FullRect);
-            upgradeMagicCircleSprite.name = "RuntimeInvulnerabilityMagicCircle";
-            upgradeMagicCircleGlow = BuildUpgradeMagicCircleLayer(
-                "InvulnerabilityMagicCircleGlow", parent, upgradeMagicCircleSprite, -0.84f, -1);
-            upgradeMagicCircle = BuildUpgradeMagicCircleLayer(
-                "InvulnerabilityMagicCircleRunes", parent, upgradeMagicCircleSprite, -0.82f, 0);
-        }
-
-        private static SpriteRenderer BuildUpgradeMagicCircleLayer(
-            string objectName, Transform parent, Sprite sprite, float localY, int sortingOrder)
-        {
-            GameObject layer = new GameObject(objectName);
-            layer.transform.SetParent(parent, false);
-            layer.transform.localPosition = new Vector3(0f, localY, 0f);
-            layer.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-            layer.transform.localScale = Vector3.one * 0.05f;
-            SpriteRenderer renderer = layer.AddComponent<SpriteRenderer>();
-            renderer.sprite = sprite;
-            renderer.sortingOrder = sortingOrder;
-            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
-            renderer.receiveShadows = false;
-            renderer.enabled = false;
-            return renderer;
-        }
-
         private GameObject CreateBox(string name, Vector3 position, Vector3 scale, Color color, Transform parent)
         {
             GameObject box = GameObject.CreatePrimitive(PrimitiveType.Cube);
@@ -4072,6 +4353,10 @@ namespace PlayableAd
                 {
                     DrawSmashCallout(width, height);
                 }
+                else if (callout == RewardWingCallout)
+                {
+                    DrawRewardWingCallout(width, height);
+                }
                 else
                 {
                     GUI.Label(new Rect(20f, height * 0.18f, width - 40f, 65f), callout, titleStyle);
@@ -4111,34 +4396,26 @@ namespace PlayableAd
 
             if (endCardGameLogo != null)
             {
-                Rect logoBounds = new Rect(width * 0.07f, height * 0.035f,
-                    width * 0.86f, height * 0.27f);
+                Rect logoBounds = new Rect(width * 0.07f, height * 0.085f,
+                    width * 0.86f, height * 0.26f);
                 Rect logoRect = FitTextureInBounds(endCardGameLogo, logoBounds);
                 GUI.DrawTexture(logoRect, endCardGameLogo, ScaleMode.StretchToFill, true);
-
-                if (endCardVictoryLogo != null)
-                {
-                    float victorySize = Mathf.Min(width * 0.8232f, height * 0.4508f);
-                    float victoryY = logoRect.yMax + height * 0.025f;
-                    Rect victoryRect = new Rect((width - victorySize) * 0.5f,
-                        victoryY, victorySize, victorySize);
-                    GUI.DrawTexture(victoryRect, endCardVictoryLogo,
-                        ScaleMode.StretchToFill, true);
-                }
             }
-            else if (endCardVictoryLogo != null)
+
+            if (endCardVictoryLogo != null)
             {
                 float victorySize = Mathf.Min(width * 0.8232f, height * 0.4508f);
+                float victoryCenterY = height * 0.47f;
                 Rect victoryRect = new Rect((width - victorySize) * 0.5f,
-                    height * 0.17f, victorySize, victorySize);
+                    victoryCenterY - victorySize * 0.5f, victorySize, victorySize);
                 GUI.DrawTexture(victoryRect, endCardVictoryLogo,
                     ScaleMode.StretchToFill, true);
             }
 
             if (endCardPlayNowImage == null) return;
 
-            Rect ctaBounds = new Rect(width * 0.045f, height * 0.55f,
-                width * 0.91f, height * 0.4f);
+            Rect ctaBounds = new Rect(width * 0.045f, height * 0.61f,
+                width * 0.91f, height * 0.37f);
             Rect ctaBaseRect = FitTextureInBounds(endCardPlayNowImage, ctaBounds);
             float ctaPulse = 1f + Mathf.Sin(Time.unscaledTime * 3.8f) * 0.055f;
             Rect ctaRect = ScaleRectFromCenter(ctaBaseRect, ctaPulse);
@@ -4170,15 +4447,31 @@ namespace PlayableAd
 
         private void HandleEndCardClick()
         {
+            RestartFromBeginning();
+        }
+
+        private void RestartFromBeginning()
+        {
+            if (restartRequested) return;
+            restartRequested = true;
+            CancelDrag();
+            BulletTimeManager.Instance?.StopBulletTime();
+            visualTimeScale?.Restore();
+            Time.timeScale = 1f;
+            AudioListener.pause = false;
             Scene activeScene = SceneManager.GetActiveScene();
             if (activeScene.IsValid() && !string.IsNullOrEmpty(activeScene.name))
                 SceneManager.LoadScene(activeScene.name);
+            else
+                restartRequested = false;
         }
 
         private void SetGameplayHudVisible(bool visible)
         {
             if (speedBarView != null)
                 speedBarView.gameObject.SetActive(visible);
+            if (restartButtonCanvas != null)
+                restartButtonCanvas.SetActive(visible);
             numberCombatSystem?.SetVisible(visible);
             if (!visible)
                 bossTapPromptView?.Hide(true);
@@ -4260,6 +4553,43 @@ namespace PlayableAd
             float labelX = (width - labelWidth) * 0.5f + offset.x;
             GUI.Label(new Rect(labelX, height * 0.23f + offset.y, labelWidth, 68f), "SMASH", smashTitleStyle);
             GUI.Label(new Rect(labelX, height * 0.305f + offset.y, labelWidth, 48f), "↑  SPEED UP  ↑", smashSubtitleStyle);
+            GUI.color = previousColor;
+        }
+
+        private void DrawRewardWingCallout(float width, float height)
+        {
+            float now = Time.unscaledTime;
+            float effectProgress = smashEffectUntil > smashEffectStart
+                ? Mathf.Clamp01((now - smashEffectStart) / (smashEffectUntil - smashEffectStart))
+                : 1f;
+            float remainingEffect = 1f - effectProgress;
+            float jitterX = Mathf.Sin(now * 92f) * 7f * remainingEffect;
+            float jitterY = Mathf.Cos(now * 117f) * 4f * remainingEffect;
+
+            if (remainingEffect > 0f)
+            {
+                for (int i = 3; i >= 1; i--)
+                {
+                    float ghostOffset = i * 5f * remainingEffect;
+                    float ghostAlpha = 0.08f * remainingEffect * (4 - i);
+                    DrawRewardWingText(width, height,
+                        new Vector2(jitterX - ghostOffset, jitterY + i * 2f),
+                        ghostAlpha, new Color(1f, 0.72f, 0.3f, 1f));
+                }
+            }
+
+            DrawRewardWingText(width, height, new Vector2(jitterX, jitterY), 1f, Color.white);
+        }
+
+        private void DrawRewardWingText(float width, float height, Vector2 offset,
+            float alpha, Color color)
+        {
+            Color previousColor = GUI.color;
+            GUI.color = new Color(color.r, color.g, color.b, alpha);
+            float labelWidth = width * 0.96f;
+            float labelX = (width - labelWidth) * 0.5f + offset.x;
+            GUI.Label(new Rect(labelX, height * 0.25f + offset.y, labelWidth, 72f),
+                RewardWingCallout, rewardWingCalloutStyle);
             GUI.color = previousColor;
         }
 
@@ -4379,6 +4709,15 @@ namespace PlayableAd
                 alignment = TextAnchor.MiddleCenter,
                 fontSize = 30,
                 fontStyle = FontStyle.Normal,
+                normal = { textColor = Color.white }
+            };
+            rewardWingCalloutStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.MiddleCenter,
+                fontSize = 34,
+                fontStyle = FontStyle.Bold,
+                wordWrap = false,
+                clipping = TextClipping.Clip,
                 normal = { textColor = Color.white }
             };
             powerUpStyle = new GUIStyle(GUI.skin.label)

@@ -95,6 +95,13 @@ namespace PlayableAd
         public float CurrentWindPitch => currentWindPitch;
         public float CurrentImpactMultiplier => currentImpactMultiplier;
 
+        private void OnEnable()
+        {
+            // Disable an instance preserved by a Play Mode script reload from an older build.
+            Transform legacyAura = transform.Find("CFXR_AccelerationRunicAura");
+            if (legacyAura != null) legacyAura.gameObject.SetActive(false);
+        }
+
         private void Update()
         {
             float worldDeltaTime = BulletTimeManager.Instance != null
@@ -364,10 +371,11 @@ public void SetRunningTrailsVisible(bool visible)
                 new Vector3(0.46f, 0.46f, 0.52f),
                 out externalWindTrailParticles);
             ConfigureExternalWindTrail();
-            accelerationAuraRoot = InstantiateExternalVfx(auraPrefab, "CFXR_AccelerationRunicAura",
-                new Vector3(0f, -0.96f, 0f), Quaternion.identity, Vector3.one,
-                out accelerationAuraParticles);
-            accelerationAuraParticles = KeepSafeAuraLayers(accelerationAuraParticles);
+            // The authored CFXR aura renders as an opaque red rectangle on some mobile/WebGL
+            // render paths, including its nominally safe rune layers. Invulnerability keeps the
+            // runtime gold ring and magic-circle presentation owned by PlayableAdGame instead.
+            accelerationAuraRoot = null;
+            accelerationAuraParticles = new ParticleSystem[0];
 
             SetExternalVfxActive(externalWindTrailRoot, externalWindTrailParticles, false);
             SetExternalVfxActive(accelerationAuraRoot, accelerationAuraParticles, false);
@@ -383,42 +391,6 @@ public void SetRunningTrailsVisible(bool visible)
                     renderer.sortingFudge = -1f;
                 }
             }
-        }
-
-        // Only the two runic-ring layers are reliable in the player render path. The prefab's
-        // root mesh and stretched Rays layer can render as an opaque red rectangle on the road.
-        private static ParticleSystem[] KeepSafeAuraLayers(ParticleSystem[] particles)
-        {
-            if (particles == null || particles.Length == 0) return new ParticleSystem[0];
-
-            int safeCount = 0;
-            for (int i = 0; i < particles.Length; i++)
-            {
-                ParticleSystem particle = particles[i];
-                if (IsSafeAuraLayer(particle))
-                {
-                    safeCount++;
-                    continue;
-                }
-
-                if (particle == null) continue;
-                ParticleSystemRenderer renderer = particle.GetComponent<ParticleSystemRenderer>();
-                if (renderer != null) renderer.enabled = false;
-                particle.Stop(true, ParticleSystemStopBehavior.StopEmittingAndClear);
-            }
-
-            ParticleSystem[] safeParticles = new ParticleSystem[safeCount];
-            int safeIndex = 0;
-            for (int i = 0; i < particles.Length; i++)
-                if (IsSafeAuraLayer(particles[i])) safeParticles[safeIndex++] = particles[i];
-            return safeParticles;
-        }
-
-        private static bool IsSafeAuraLayer(ParticleSystem particle)
-        {
-            if (particle == null) return false;
-            string layerName = particle.gameObject.name;
-            return layerName == "Runes" || layerName == "Runes small";
         }
 
         private void UpdateExternalSpeedVfx(float forwardSpeed, float continuousSpeed,

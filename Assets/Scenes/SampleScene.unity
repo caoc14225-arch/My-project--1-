@@ -255,7 +255,7 @@ MonoBehaviour:
     tutorialWallBulletTime:
       enabled: 1
       triggerDistance: 5
-      duration: 0.5
+      duration: 1
       worldTimeScale: 0.25
       enterDuration: 0.1
       exitDuration: 0.1
@@ -273,6 +273,16 @@ MonoBehaviour:
     documentMainRunStartOffset: 10
     documentZoneGap: 7
     documentSingleContentLength: 1
+    dividerWallEnabled: 1
+    dividerWallSegmentSpacing: 6.15
+    dividerWallCollisionHalfWidth: 0.38
+    dividerWallActivationDistance: 80
+    dividerWallBulletTimeEnabled: 1
+    dividerWallBulletTimeTriggerDistance: 15
+    dividerWallBulletTimeDuration: 1.2
+    dividerWallWorldTimeScale: 0.25
+    dividerWallEnterDuration: 0.1
+    dividerWallExitDuration: 0.1
     documentEliteLevel: 8
     documentEliteSpeedPenalty: 0.5
     documentSmallPotionBoost: 1
@@ -636,6 +646,10 @@ MonoBehaviour:
     stoneWallCount: 10
     startOffsetAfterBoss: 14
     soldierSpacing: 0.22
+    guideViewportHeight: 0.52
+    guideLandingDistance: 18
+    guideGroundHeight: 0.45
+    guidePickupDuration: 0.28
   gameplayCombo:
     enabled: 1
     firstMilestone: 10
@@ -824,9 +838,12 @@ MonoBehaviour:
   speedBarSoldierHintIcon: {fileID: 21300000, guid: cb8c0e6a15d20424fb0e3d193035eb7f, type: 3}
   speedBarStoneWallHintIcon: {fileID: 21300000, guid: 11caa1edbf255de4e82d558e411f65b6, type: 3}
   speedBarStoneWallLockedHintIcon: {fileID: 21300000, guid: 89322afc324999c49bcfd9c96ce7debb, type: 3}
+  speedBarEliteHintIcon: {fileID: 21300000, guid: def6d2f032f27bc498b7794a8a994eaa, type: 3}
+  speedBarEliteLockedHintIcon: {fileID: 21300000, guid: 06b09ab72cbc550478423963f1d77f7b, type: 3}
+  speedBarBossHintIcon: {fileID: 21300000, guid: d64debfd2f6608d4bbc2626fdaca1cea, type: 3}
+  speedBarBossLockedHintIcon: {fileID: 21300000, guid: cc309ad3b9b7d394bb1e527a9d75be90, type: 3}
   runningWindTrailPrefab: {fileID: 3696007233179127096, guid: c248f95ffea8b8543bc7ad0fffe0216d, type: 3}
-  accelerationAuraPrefab: {fileID: 3280519133390621005, guid: a71be3e7990efb040a07565c43cbb198, type: 3}
-  upgradeMagicCircleTexture: {fileID: 2800000, guid: 544a60590979be040990522c0f64e9e3, type: 3}
+  accelerationAuraPrefab: {fileID: 0}
   elixirPresentation:
     hoverHeight: 0.18
     rotationSpeed: 72
@@ -1011,7 +1028,7 @@ MonoBehaviour:
   roadBorderStraightPrefab: {fileID: 919132149155446097, guid: 20cfcf3090b8f11438803c909f2f1239, type: 3}
   roadBorderPedestalPrefab: {fileID: 919132149155446097, guid: 5af95374d8aa0504c932cf991d8036a2, type: 3}
   roadBorderMaterial: {fileID: 2100000, guid: cd0eeef2ed0050b44b657f0f1e02edc7, type: 2}
-  roadBorderFlamePrefab: {fileID: 4765126720603256568, guid: 5ad5c818698845641ba01d772504fefa, type: 3}
+  roadBorderFlamePrefab: {fileID: 6732069656011032471, guid: 2c4dcf8438bb4c8abdb268466b21a087, type: 3}
   showSpeedDebugOverlay: 0
   debugTestSegmentLength: 100
 --- !u!4 &2069326156
