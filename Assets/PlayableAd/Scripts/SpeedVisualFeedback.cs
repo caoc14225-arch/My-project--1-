@@ -80,8 +80,7 @@ namespace PlayableAd
         private float currentAmbientShake;
         private float currentChargeLean;
         private float temporaryBoost;
-        private float accelerationAuraTimer;
-        private float lastContinuousSpeed = 1f;
+        private bool invulnerabilityAuraActive;
         private int currentLevel = 1;
         private float animationTime;
         private bool runningTrailsVisible = true;
@@ -95,6 +94,13 @@ namespace PlayableAd
         public float CurrentWindVolume => currentWindVolume;
         public float CurrentWindPitch => currentWindPitch;
         public float CurrentImpactMultiplier => currentImpactMultiplier;
+
+        private void OnEnable()
+        {
+            // Disable an instance preserved by a Play Mode script reload from an older build.
+            Transform legacyAura = transform.Find("CFXR_AccelerationRunicAura");
+            if (legacyAura != null) legacyAura.gameObject.SetActive(false);
+        }
 
         private void Update()
         {
@@ -133,7 +139,6 @@ namespace PlayableAd
             currentWindVolume = initial.windVolume;
             currentWindPitch = initial.windPitch;
             currentImpactMultiplier = initial.impactFeedbackMultiplier;
-            lastContinuousSpeed = 1f;
 
             mainTrail = gameObject.AddComponent<TrailRenderer>();
             mainTrail.sharedMaterial = profile.trailMaterial != null
@@ -206,13 +211,6 @@ namespace PlayableAd
             float worldScale = BulletTimeManager.Instance != null
                 ? Mathf.Max(0.1f, BulletTimeManager.Instance.WorldTimeScale)
                 : 1f;
-            float speedDelta = continuousSpeed - lastContinuousSpeed;
-            if (speedDelta > 0.001f)
-                accelerationAuraTimer = Mathf.Clamp(accelerationAuraTimer + 0.42f + speedDelta * 0.18f, 0f, 1.2f);
-            else
-                accelerationAuraTimer = Mathf.MoveTowards(accelerationAuraTimer, 0f, worldDeltaTime);
-            lastContinuousSpeed = continuousSpeed;
-
             float levelStrength = Mathf.InverseLerp(1f, 10f, currentLevel);
             float stageIntensity = GetImpactStageIntensity(currentLevel);
 
@@ -305,7 +303,11 @@ namespace PlayableAd
         public void PulseLevelUp()
         {
             Pulse(profile != null ? profile.levelUpPulse : 1f);
-            accelerationAuraTimer = Mathf.Max(accelerationAuraTimer, 0.72f);
+        }
+
+        public void SetInvulnerabilityAuraActive(bool active)
+        {
+            invulnerabilityAuraActive = active;
         }
 
 public void SetRunningTrailsVisible(bool visible)
@@ -369,9 +371,11 @@ public void SetRunningTrailsVisible(bool visible)
                 new Vector3(0.46f, 0.46f, 0.52f),
                 out externalWindTrailParticles);
             ConfigureExternalWindTrail();
-            accelerationAuraRoot = InstantiateExternalVfx(auraPrefab, "CFXR_AccelerationRunicAura",
-                new Vector3(0f, -0.96f, 0f), Quaternion.identity, Vector3.one,
-                out accelerationAuraParticles);
+            // The authored CFXR aura renders as an opaque red rectangle on some mobile/WebGL
+            // render paths, including its nominally safe rune layers. Invulnerability keeps the
+            // runtime gold ring and magic-circle presentation owned by PlayableAdGame instead.
+            accelerationAuraRoot = null;
+            accelerationAuraParticles = new ParticleSystem[0];
 
             SetExternalVfxActive(externalWindTrailRoot, externalWindTrailParticles, false);
             SetExternalVfxActive(accelerationAuraRoot, accelerationAuraParticles, false);
@@ -403,8 +407,8 @@ public void SetRunningTrailsVisible(bool visible)
             bool running = forwardSpeed > 0.1f;
             SetExternalVfxActive(externalWindTrailRoot, externalWindTrailParticles, running);
 
-            bool accelerating = running && accelerationAuraTimer > 0.001f;
-            if (accelerating)
+            bool showInvulnerabilityAura = running && invulnerabilityAuraActive;
+            if (showInvulnerabilityAura)
             {
                 RestartAccelerationAuraIfReversing();
                 SetExternalVfxActive(accelerationAuraRoot, accelerationAuraParticles, true);
@@ -681,6 +685,7 @@ public void SetRunningTrailsVisible(bool visible)
             for (int i = 0; i < count; i++)
             {
                 GameObject root = new GameObject("Afterimage_" + i);
+                root.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
                 root.transform.SetParent(transform.parent, true);
                 LineRenderer line = root.AddComponent<LineRenderer>();
                 line.useWorldSpace = true;
@@ -893,6 +898,7 @@ public void SetRunningTrailsVisible(bool visible)
             }
 
             sonicBoomPoolRoot = new GameObject("SpeedLevelUpVFX_SonicBoomPool").transform;
+            sonicBoomPoolRoot.gameObject.hideFlags = HideFlags.DontSaveInEditor | HideFlags.DontSaveInBuild;
             sonicBoomPoolRoot.SetParent(transform.parent, false);
             sonicBoomRings = new SpriteRenderer[count];
             sonicRingTimers = new float[count];
@@ -1044,6 +1050,15 @@ public void SetRunningTrailsVisible(bool visible)
         private void OnDestroy()
         {
             DestroyFrontAirflowSprites();
+            if (afterimages != null)
+            {
+                for (int i = 0; i < afterimages.Length; i++)
+                {
+                    if (afterimages[i] == null) continue;
+                    if (Application.isPlaying) Destroy(afterimages[i].gameObject);
+                    else DestroyImmediate(afterimages[i].gameObject);
+                }
+            }
             if (sonicBoomSprites != null)
             {
                 for (int i = 0; i < sonicBoomSprites.Length; i++)

@@ -29,9 +29,15 @@ namespace PlayableAd
         private Sprite soldierHintIcon;
         private Sprite stoneWallHintIcon;
         private Sprite stoneWallLockedHintIcon;
+        private Sprite eliteHintIcon;
+        private Sprite eliteLockedHintIcon;
+        private Sprite bossHintIcon;
+        private Sprite bossLockedHintIcon;
         private int stoneWallHintLevel = 7;
         private EncounterHintView soldierHint;
         private EncounterHintView stoneWallHint;
+        private EncounterHintView eliteHint;
+        private EncounterHintView bossHint;
         private RectTransform safeAreaRoot;
         private RectTransform panel;
         private RectTransform continuousFill;
@@ -60,12 +66,14 @@ namespace PlayableAd
 
         public void Initialize(PlayerSpeedController controller, SpeedVisualProfile visualProfile)
         {
-            Initialize(controller, visualProfile, null, null, null, null, 7);
+            Initialize(controller, visualProfile, null, null, null, null,
+                null, null, null, null, 7);
         }
 
         public void Initialize(PlayerSpeedController controller, SpeedVisualProfile visualProfile,
             Sprite frameSprite, Sprite soldierIcon, Sprite stoneWallIcon,
-            Sprite lockedStoneWallIcon, int wallHintLevel,
+            Sprite lockedStoneWallIcon, Sprite eliteIcon, Sprite lockedEliteIcon,
+            Sprite bossIcon, Sprite lockedBossIcon, int wallHintLevel,
             Transform levelUpTargetTransform = null, Camera targetCamera = null)
         {
             speedController = controller;
@@ -76,6 +84,10 @@ namespace PlayableAd
             soldierHintIcon = soldierIcon;
             stoneWallHintIcon = stoneWallIcon;
             stoneWallLockedHintIcon = lockedStoneWallIcon;
+            eliteHintIcon = eliteIcon;
+            eliteLockedHintIcon = lockedEliteIcon;
+            bossHintIcon = bossIcon;
+            bossLockedHintIcon = lockedBossIcon;
             stoneWallHintLevel = Mathf.Clamp(wallHintLevel, 1, speedController.LevelCount);
             levelUpTextures = LoadLevelUpTextures();
             tickMarkers = new Image[speedController.LevelCount];
@@ -175,7 +187,11 @@ namespace PlayableAd
             for (int level = 1; level <= tickMarkers.Length; level++)
             {
                 int index = level - 1;
-                float position = speedController.GetNormalizedLevelStart(level);
+                // The final UI tick represents the absolute maximum, while the
+                // underlying highest level may begin slightly before max speed.
+                float position = level == tickMarkers.Length
+                    ? 1f
+                    : speedController.GetNormalizedLevelStart(level);
                 RectTransform tick = CreateRect("Level_" + level, tickRoot);
                 tick.anchorMin = new Vector2(position, 0.5f);
                 tick.anchorMax = new Vector2(position, 0.5f);
@@ -221,11 +237,26 @@ namespace PlayableAd
                         stoneWallLockedHintIcon != null ? stoneWallLockedHintIcon : stoneWallHintIcon,
                         new Vector2(128f, 80f), new Color(1f, 0.78f, 0.42f, 1f));
                 }
+                if (level == 8 && eliteHintIcon != null)
+                {
+                    eliteHint = BuildEncounterHint(tick, "EliteSoldierHitHint", 8,
+                        eliteHintIcon,
+                        eliteLockedHintIcon != null ? eliteLockedHintIcon : eliteHintIcon,
+                        new Vector2(112f, 128f), Color.white);
+                }
+                if (level == 10 && bossHintIcon != null)
+                {
+                    bossHint = BuildEncounterHint(tick, "BossHitHint", 10,
+                        bossHintIcon,
+                        bossLockedHintIcon != null ? bossLockedHintIcon : bossHintIcon,
+                        new Vector2(140f, 140f), Color.white, false);
+                }
             }
         }
 
         private EncounterHintView BuildEncounterHint(RectTransform tick, string objectName, int unlockLevel,
-            Sprite unlockedSprite, Sprite lockedSprite, Vector2 iconSize, Color unlockedTint)
+            Sprite unlockedSprite, Sprite lockedSprite, Vector2 iconSize, Color unlockedTint,
+            bool preserveAspect = true)
         {
             RectTransform root = CreateRect(objectName, tick);
             root.anchorMin = new Vector2(0.5f, 0f);
@@ -252,7 +283,7 @@ namespace PlayableAd
             iconRect.sizeDelta = iconSize;
             Image icon = iconRect.gameObject.AddComponent<Image>();
             icon.sprite = lockedSprite;
-            icon.preserveAspect = true;
+            icon.preserveAspect = preserveAspect;
             icon.raycastTarget = false;
 
             return new EncounterHintView
@@ -379,6 +410,8 @@ namespace PlayableAd
 
             RefreshEncounterHint(soldierHint, currentLevel);
             RefreshEncounterHint(stoneWallHint, currentLevel);
+            RefreshEncounterHint(eliteHint, currentLevel);
+            RefreshEncounterHint(bossHint, currentLevel);
         }
 
         private static void RefreshEncounterHint(EncounterHintView hint, int level)
@@ -407,10 +440,8 @@ namespace PlayableAd
 
         private static void ApplyEncounterHintState(EncounterHintView hint)
         {
-            hint.icon.sprite = hint.unlocked ? hint.unlockedSprite : hint.lockedSprite;
-            hint.icon.color = hint.unlocked
-                ? hint.unlockedTint
-                : new Color(0.72f, 0.72f, 0.72f, 0.82f);
+            hint.icon.sprite = hint.unlockedSprite;
+            hint.icon.color = hint.unlockedTint;
             if (hint.animationTimeRemaining <= 0f)
                 hint.root.localScale = Vector3.one;
         }
@@ -431,6 +462,8 @@ namespace PlayableAd
             pulseOverlay.color = overlayColor;
             UpdateEncounterHintAnimation(soldierHint);
             UpdateEncounterHintAnimation(stoneWallHint);
+            UpdateEncounterHintAnimation(eliteHint);
+            UpdateEncounterHintAnimation(bossHint);
 
             if (badgeTimer > 0f)
             {
