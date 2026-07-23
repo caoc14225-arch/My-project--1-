@@ -10,6 +10,7 @@ namespace PlayableAd
     public sealed class PlayableAdGame : MonoBehaviour
     {
         private const float WallCollisionDistance = 1.3f;
+        private const int GameplayLevelConfigurationVersion = 5;
         private const float FirstSpeedLossSectionEndZ = 150f;
         private const float SecondSpeedLossSectionEndZ = 350f;
         private const int SoldierDisplayLevel = 1;
@@ -55,7 +56,13 @@ namespace PlayableAd
             [InspectorName("Left And Center（阻挡左中路）")]
             LeftAndCenter,
             [InspectorName("Center And Right（阻挡中右路）")]
-            CenterAndRight
+            CenterAndRight,
+            [InspectorName("Left Lane Only（只阻挡左路）")]
+            LeftLaneOnly,
+            [InspectorName("Right Lane Only（只阻挡右路）")]
+            RightLaneOnly,
+            [InspectorName("Center Lane Only（只阻挡中路）")]
+            CenterLaneOnly
         }
 
         [Serializable]
@@ -111,6 +118,9 @@ namespace PlayableAd
         [Serializable]
         public sealed class Tuning
         {
+            [SerializeField, HideInInspector]
+            public int gameplayLevelConfigurationVersion;
+
             [Header("Opening Tutorial（开场教学）")]
             [Range(1f, 2f), InspectorName("Opening Elixir Time（开场药剂时间）")] public float openingElixirTime = 1.23f;
             [Range(3, 5), InspectorName("Tutorial Soldier Count（教学士兵数量）")] public int tutorialSoldierCount = 5;
@@ -121,18 +131,18 @@ namespace PlayableAd
             [InspectorName("Tutorial Wall Bullet Time（教学墙子弹时间）")] public BulletTimeSettings tutorialWallBulletTime = new BulletTimeSettings
             {
                 enabled = true,
-                triggerDistance = 3f,
-                duration = 0.55f,
+                triggerDistance = 5f,
+                duration = 0.5f,
                 worldTimeScale = 0.25f,
-                enterDuration = 0.2f,
-                exitDuration = 0.15f
+                enterDuration = 0.1f,
+                exitDuration = 0.1f
             };
             [Range(1, PlayerSpeedSettings.RequiredLevelCount), InspectorName("Tutorial Exit Speed Level（教学结束速度等级）")]
             public int tutorialExitSpeedLevel = 2;
 
             [Header("Stone Wall Collision（石墙碰撞）")]
             [Min(1), InspectorName("Stone Wall Safe Speed Level（石墙安全速度等级）")]
-            public int stoneWallSafeSpeedLevel = 7;
+            public int stoneWallSafeSpeedLevel = 6;
             [Tooltip("Subtracts from the continuous speed value（从连续速度值中扣除）")]
             [Min(0f), InspectorName("Stone Wall Speed Penalty Levels（石墙减速等级）")]
             public float stoneWallSpeedPenaltyLevels = 0.5f;
@@ -141,9 +151,9 @@ namespace PlayableAd
             [InspectorName("Speed Loss Enabled（启用速度损失）")] public bool forwardSpeedLossEnabled = true;
             [FormerlySerializedAs("forwardSpeedLossPerSecond")]
             [Min(0f), InspectorName("Section 1 Loss Per Second, Z 0-150（第一区段每秒速度损失，Z 0-150）")]
-            public float firstSectionSpeedLossPerSecond = 0.2f;
+            public float firstSectionSpeedLossPerSecond;
             [Min(0f), InspectorName("Section 2 Loss Per Second, Z 150-350（第二区段每秒速度损失，Z 150-350）")]
-            public float secondSectionSpeedLossPerSecond = 0.2f;
+            public float secondSectionSpeedLossPerSecond;
             [Min(0f), InspectorName("Section 3 Loss Per Second, Z 350-500（第三区段每秒速度损失，Z 350-500）")]
             public float thirdSectionSpeedLossPerSecond;
             [Range(1f, 10f), InspectorName("Minimum Speed After Loss（损失后最低速度）")] public float minimumSpeedAfterLoss = 1f;
@@ -154,6 +164,31 @@ namespace PlayableAd
             [Min(0f), InspectorName("Boss Max Speed Elixir Distance（Boss前满速药剂距离）")]
             public float bossMaxSpeedElixirDistance = 30f;
             [Header("Data-driven Main Run（数据驱动主流程）")]
+            [InspectorName("Use Document Main Run Layout（使用文档主路线排布）")]
+            public bool useDocumentMainRunLayout = true;
+            [Min(0f), InspectorName("Document Main Run Start Offset（文档主路线起始偏移）")]
+            public float documentMainRunStartOffset = 10f;
+            [Min(0f), InspectorName("Document Zone Gap（文档区块间隔）")]
+            public float documentZoneGap = 5f;
+            [Min(0.1f), InspectorName("Document Single Content Length（单个内容占用长度）")]
+            public float documentSingleContentLength = 1f;
+            [Range(1, PlayerSpeedSettings.RequiredLevelCount), InspectorName("Document Elite Level（文档精英等级）")]
+            public int documentEliteLevel = 8;
+            [Min(0f), InspectorName("Document Elite Speed Penalty（文档精英速度惩罚）")]
+            public float documentEliteSpeedPenalty = 0.5f;
+            [Header("Document Temporary Potions（文档临时药剂）")]
+            [Min(0f), InspectorName("Small Potion Boost（小瓶速度增量）")]
+            public float documentSmallPotionBoost = 1f;
+            [Min(0f), InspectorName("Small Potion Hold（小瓶保持时长）")]
+            public float documentSmallPotionHold = 1f;
+            [Min(0.01f), InspectorName("Small Potion Return（小瓶回退时长）")]
+            public float documentSmallPotionReturn = 3f;
+            [Min(0f), InspectorName("Large Potion Boost（大瓶速度增量）")]
+            public float documentLargePotionBoost = 2f;
+            [Min(0f), InspectorName("Large Potion Hold（大瓶保持时长）")]
+            public float documentLargePotionHold = 1f;
+            [Min(0.01f), InspectorName("Large Potion Return（大瓶回退时长）")]
+            public float documentLargePotionReturn = 4f;
             [Min(10f), InspectorName("Boss Approach Padding（Boss 接近缓冲）")] public float bossApproachPadding = 13.46154f;
             [InspectorName("Procedural Seed（程序化随机种子）")] public int proceduralSeed = 41723;
             [Header("Mobile encounter budget（移动端遭遇预算）")]
@@ -169,6 +204,40 @@ namespace PlayableAd
             [Range(8f, 24f), InspectorName("Minimum Enemy Active Distance（最小敌人活动距离）")] public float minimumEnemyActiveDistance = 10f;
             [Range(30f, 70f), InspectorName("Maximum Enemy Active Distance（最大敌人活动距离）")] public float maximumEnemyActiveDistance = 52f;
             [Range(48, 96), InspectorName("Max Preloaded Enemies（最大预加载敌人数）")] public int maxPreloadedEnemies = 80;
+
+            public void UpgradeGameplayLevelConfiguration(PlayerSpeedSettings speedSettings)
+            {
+                if (gameplayLevelConfigurationVersion >= GameplayLevelConfigurationVersion) return;
+
+                if (gameplayLevelConfigurationVersion < 1)
+                {
+                    stoneWallSafeSpeedLevel = 6;
+                    documentEliteLevel = 8;
+                }
+                if (gameplayLevelConfigurationVersion < 2)
+                {
+                    documentLargePotionBoost = 2f;
+                    if (speedSettings != null) speedSettings.tutorialElixirTargetLevel = 2;
+                }
+                if (gameplayLevelConfigurationVersion < 3)
+                    documentSmallPotionHold = 1f;
+                if (gameplayLevelConfigurationVersion < 4)
+                {
+                    firstSectionSpeedLossPerSecond = 0f;
+                    secondSectionSpeedLossPerSecond = 0f;
+                    thirdSectionSpeedLossPerSecond = 0f;
+                }
+                if (gameplayLevelConfigurationVersion < 5)
+                {
+                    if (tutorialWallBulletTime == null) tutorialWallBulletTime = new BulletTimeSettings();
+                    tutorialWallBulletTime.triggerDistance = 5f;
+                    tutorialWallBulletTime.duration = 0.5f;
+                    tutorialWallBulletTime.enterDuration = 0.1f;
+                    tutorialWallBulletTime.exitDuration = 0.1f;
+                    documentEliteSpeedPenalty = 0.5f;
+                }
+                gameplayLevelConfigurationVersion = GameplayLevelConfigurationVersion;
+            }
             [Range(24, 64), InspectorName("Max Distant Visible Enemies（最大远处可见敌人数）")] public int maxDistantVisibleEnemies = 48;
             [Header("Touch steering（触屏横向操控）")]
             [Min(1f), InspectorName("Lane Half Width（路线半宽）")] public float laneHalfWidth = 3.2f;
@@ -272,6 +341,10 @@ namespace PlayableAd
             public EnemyVisibilityController visibility;
             public SoldierKnockbackEffect soldierKnockback;
             public ElixirPickup elixir;
+            public float temporaryBoostAmount;
+            public float temporaryBoostHoldDuration;
+            public float temporaryBoostReturnDuration;
+            public bool temporaryBoostGrantsInvulnerability;
             public float wallCenterX;
             public float wallHalfWidth;
             public BulletTimeSettings bulletTimeSettings;
@@ -279,6 +352,79 @@ namespace PlayableAd
             public bool completesTutorial;
             public bool hasPreviousDistance;
             public float previousDistance;
+        }
+
+        private enum MainRunContentType
+        {
+            Empty,
+            Soldiers,
+            StoneWall,
+            Elite,
+            SmallPotion,
+            LargePotion
+        }
+
+        private sealed class MainRunLaneContent
+        {
+            public readonly MainRunContentType type;
+            public readonly int count;
+
+            public MainRunLaneContent(MainRunContentType contentType, int soldierCount = 0)
+            {
+                type = contentType;
+                count = soldierCount;
+            }
+        }
+
+        private sealed class MainRunZone
+        {
+            public readonly MainRunLaneContent left;
+            public readonly MainRunLaneContent center;
+            public readonly MainRunLaneContent right;
+
+            public MainRunZone(MainRunLaneContent leftContent,
+                MainRunLaneContent centerContent, MainRunLaneContent rightContent)
+            {
+                left = leftContent ?? EmptyLane();
+                center = centerContent ?? EmptyLane();
+                right = rightContent ?? EmptyLane();
+            }
+        }
+
+        private static MainRunLaneContent EmptyLane()
+        {
+            return new MainRunLaneContent(MainRunContentType.Empty);
+        }
+
+        private static MainRunLaneContent SoldiersLane(int count)
+        {
+            return new MainRunLaneContent(MainRunContentType.Soldiers, Mathf.Max(1, count));
+        }
+
+        private static MainRunLaneContent StoneWallLane()
+        {
+            return new MainRunLaneContent(MainRunContentType.StoneWall);
+        }
+
+        private static MainRunLaneContent EliteLane()
+        {
+            return new MainRunLaneContent(MainRunContentType.Elite);
+        }
+
+        private static MainRunLaneContent SmallPotionLane()
+        {
+            return new MainRunLaneContent(MainRunContentType.SmallPotion);
+        }
+
+        private static MainRunLaneContent LargePotionLane()
+        {
+            return new MainRunLaneContent(MainRunContentType.LargePotion);
+        }
+
+        private static MainRunZone CreateMainRunZone(MainRunLaneContent left,
+            MainRunLaneContent center, MainRunLaneContent right)
+        {
+            return new MainRunZone(left, center, right);
         }
 
         [Header("All gameplay values are configurable（所有玩法数值均可配置）")]
@@ -475,8 +621,10 @@ namespace PlayableAd
         private bool ownsSpeedLevelFeedbackConfig;
         private float naturalSpeedLossProtectedUntil;
         private int naturalSpeedLossProtectedLevel;
+        private int smallPotionInvulnerabilityCount;
 
         public PlayerSpeedController SpeedController => speedController;
+        private bool SmallPotionInvulnerabilityActive => smallPotionInvulnerabilityCount > 0;
         public RunFlowState CurrentFlowState => flowController != null ? flowController.CurrentState : RunFlowState.Intro;
         public float TargetForwardSpeed => forwardMotion != null ? forwardMotion.TargetForwardSpeed : 0f;
         public float CurrentForwardSpeed => forwardMotion != null ? forwardMotion.CurrentForwardSpeed : 0f;
@@ -496,6 +644,9 @@ namespace PlayableAd
 
         private void OnValidate()
         {
+            if (tuning == null) tuning = new Tuning();
+            if (playerSpeed == null) playerSpeed = new PlayerSpeedSettings();
+            tuning.UpgradeGameplayLevelConfiguration(playerSpeed);
             if (gameplayCombo == null) gameplayCombo = new GameplayComboSettings();
             gameplayCombo.UpgradeLegacyDefaults();
             if (numberCombat == null) numberCombat = new NumberCombatSettings();
@@ -511,13 +662,16 @@ namespace PlayableAd
             Screen.autorotateToPortraitUpsideDown = false;
             Screen.autorotateToLandscapeLeft = false;
             Screen.autorotateToLandscapeRight = false;
+            if (tuning == null) tuning = new Tuning();
+            if (playerSpeed == null) playerSpeed = new PlayerSpeedSettings();
+            tuning.UpgradeGameplayLevelConfiguration(playerSpeed);
             if (!ValidatePrefabModules())
             {
                 enabled = false;
                 return;
             }
-            if (playerSpeed == null) playerSpeed = new PlayerSpeedSettings();
             if (rewardRun == null) rewardRun = new BossRewardRunSettings();
+            ApplyDocumentCourseLength();
             if (speedVisualProfile == null)
             {
                 speedVisualProfile = ScriptableObject.CreateInstance<SpeedVisualProfile>();
@@ -553,6 +707,7 @@ namespace PlayableAd
             rewardStageWallRoots.Clear();
             naturalSpeedLossProtectedUntil = 0f;
             naturalSpeedLossProtectedLevel = 0;
+            smallPotionInvulnerabilityCount = 0;
             flowController?.ResetToIntro();
             comboManager?.ResetCombo();
             numberCombatSystem?.RefreshPlayerLevel();
@@ -583,6 +738,7 @@ namespace PlayableAd
             rewardStageCompleted = false;
             rewardStageEndZ = 0f;
             rewardStageWallRoots.Clear();
+            smallPotionInvulnerabilityCount = 0;
             comboManager?.ResetCombo();
             numberCombatSystem?.RefreshPlayerLevel();
             speedController.SetLevel(playerSpeed.startingLevel, SpeedChangeReason.InitialSetup, this);
@@ -881,7 +1037,8 @@ namespace PlayableAd
                 : 0f;
             runnerSpriteVisual?.SetHorizontalInput(lateralInput);
 
-            if (FormalStarted && !bossSequence && !rewardStageActive && tuning.forwardSpeedLossEnabled)
+            if (FormalStarted && !bossSequence && !rewardStageActive
+                && !SmallPotionInvulnerabilityActive && tuning.forwardSpeedLossEnabled)
             {
                 float minimumRetainedSpeed = tuning.minimumSpeedAfterLoss;
                 // After a level-up, natural decay may reach the new tier's floor for 3s,
@@ -1193,7 +1350,14 @@ namespace PlayableAd
             if (encounter.elixir == null || encounter.elixir.HasCollected) return;
             audioFeedback?.PlayElixirContact();
             if (!encounter.elixir.TryCollect()) return;
-            StartCoroutine(ElixirUpgradeSequence(encounter, encounter.tier));
+            if (encounter.temporaryBoostAmount > 0f)
+            {
+                StartCoroutine(TemporaryBoostSequence(encounter));
+            }
+            else
+            {
+                StartCoroutine(ElixirUpgradeSequence(encounter, encounter.tier));
+            }
         }
 
         private void CollectExclusiveElixirGroup(int groupId)
@@ -1465,9 +1629,16 @@ namespace PlayableAd
                 ? playerSpeed.levelOneSoldierBoost
                 : playerSpeed.normalImpactBoost;
             bool isStoneWall = encounter.obstacle.Type == ObstacleType.StoneWall;
-            ObstacleResolutionType resolution = isStoneWall
-                ? encounter.obstacle.Resolve(speedController, boost, tuning.stoneWallSpeedPenaltyLevels)
-                : encounter.obstacle.Resolve(speedController, boost);
+            bool isElite = encounter.obstacle.Type == ObstacleType.Soldier && encounter.tier >= 4;
+            ObstacleResolutionType resolution;
+            if (SmallPotionInvulnerabilityActive)
+                resolution = encounter.obstacle.ResolveWithoutPenalty(speedController, boost);
+            else
+                resolution = isStoneWall
+                    ? encounter.obstacle.Resolve(speedController, boost, tuning.stoneWallSpeedPenaltyLevels)
+                    : isElite
+                        ? encounter.obstacle.Resolve(speedController, boost, tuning.documentEliteSpeedPenalty)
+                        : encounter.obstacle.Resolve(speedController, boost);
             if (resolution == ObstacleResolutionType.Dropped
                 && speedController.CurrentSpeed < speedBeforeResolution - 0.001f)
             {
@@ -2412,11 +2583,274 @@ namespace PlayableAd
                 tuning.tutorialWallBulletTime, true);
             BuildConfiguredMainRun(wallZ);
 
-            float bossElixirZ = Mathf.Max(0f,
-                tuning.bossDistance - Mathf.Max(0f, tuning.bossMaxSpeedElixirDistance));
-            CreateElixir(0f, bossElixirZ, speedController.MaxLevel, 0,
-                prefab != null ? prefab.bossMaxSpeedElixirPrefab : null,
-                "BossMaxSpeedElixir");
+            if (tuning == null || !tuning.useDocumentMainRunLayout)
+            {
+                float bossElixirZ = Mathf.Max(0f,
+                    tuning.bossDistance - Mathf.Max(0f, tuning.bossMaxSpeedElixirDistance));
+                CreateElixir(0f, bossElixirZ, speedController.MaxLevel, 0,
+                    prefab != null ? prefab.bossMaxSpeedElixirPrefab : null,
+                    "BossMaxSpeedElixir");
+            }
+        }
+
+        private static MainRunZone[] CreateDocumentMainRunLayout()
+        {
+            return new[]
+            {
+                CreateMainRunZone(SoldiersLane(5), null, null),
+                CreateMainRunZone(null, SoldiersLane(5), null),
+                CreateMainRunZone(null, null, SoldiersLane(5)),
+                CreateMainRunZone(SoldiersLane(5), null, null),
+                CreateMainRunZone(null, SoldiersLane(3), null),
+                CreateMainRunZone(null, null, SoldiersLane(1)),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(null, SoldiersLane(3), null),
+                CreateMainRunZone(null, null, StoneWallLane()),
+                CreateMainRunZone(SoldiersLane(2), null, null),
+                CreateMainRunZone(null, SoldiersLane(2), null),
+                CreateMainRunZone(null, StoneWallLane(), null),
+                CreateMainRunZone(SoldiersLane(3), null, null),
+                CreateMainRunZone(StoneWallLane(), null, null),
+                CreateMainRunZone(null, null, SoldiersLane(5)),
+                CreateMainRunZone(null, null, StoneWallLane()),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(null, StoneWallLane(), StoneWallLane()),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(StoneWallLane(), StoneWallLane(), null),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(null, StoneWallLane(), StoneWallLane()),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(SmallPotionLane(), null, null),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(StoneWallLane(), StoneWallLane(), StoneWallLane()),
+                CreateMainRunZone(StoneWallLane(), StoneWallLane(), StoneWallLane()),
+                CreateMainRunZone(StoneWallLane(), StoneWallLane(), StoneWallLane()),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(null, SoldiersLane(4), null),
+                CreateMainRunZone(null, null, StoneWallLane()),
+                CreateMainRunZone(SoldiersLane(4), null, StoneWallLane()),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(null, StoneWallLane(), null),
+                CreateMainRunZone(SoldiersLane(3), SoldiersLane(4), EliteLane()),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(null, EliteLane(), null),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(StoneWallLane(), null, EliteLane()),
+                CreateMainRunZone(SoldiersLane(2), null, SmallPotionLane()),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(SoldiersLane(3), EliteLane(), StoneWallLane()),
+                CreateMainRunZone(StoneWallLane(), SoldiersLane(3), SoldiersLane(3)),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(SoldiersLane(4), null, null),
+                CreateMainRunZone(null, null, SoldiersLane(4)),
+                CreateMainRunZone(SoldiersLane(4), StoneWallLane(), EliteLane()),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(SoldiersLane(2), EliteLane(), null),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(SoldiersLane(2), null, EliteLane()),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(SoldiersLane(2), EliteLane(), null),
+                CreateMainRunZone(null, null, null),
+                CreateMainRunZone(SoldiersLane(2), null, EliteLane()),
+                CreateMainRunZone(null, LargePotionLane(), null),
+                CreateMainRunZone(null, null, null)
+            };
+        }
+
+        private void ApplyDocumentCourseLength()
+        {
+            if (tuning == null || !tuning.useDocumentMainRunLayout) return;
+
+            float tutorialEndZ = CalculateTutorialWallZ();
+            float layoutEndZ = CalculateDocumentMainRunEndZ(tutorialEndZ);
+            tuning.bossDistance = Mathf.Max(20f,
+                layoutEndZ + Mathf.Max(0f, tuning.bossApproachPadding));
+        }
+
+        private float CalculateTutorialWallZ()
+        {
+            float openingElixirZ = tuning.openingElixirTime * playerSpeed.forwardSpeeds[0];
+            int soldierCount = Mathf.Clamp(tuning.tutorialSoldierCount, 3, 5);
+            float firstSoldierZ = openingElixirZ + tuning.tutorialFirstSoldierGap;
+            return firstSoldierZ + (soldierCount - 1) * tuning.tutorialSoldierSpacing
+                + tuning.tutorialWallGap;
+        }
+
+        private float CalculateDocumentMainRunEndZ(float tutorialEndZ)
+        {
+            MainRunZone[] layout = CreateDocumentMainRunLayout();
+            float currentZ = tutorialEndZ + Mathf.Max(0f, tuning.documentMainRunStartOffset);
+            for (int i = 0; i < layout.Length; i++)
+            {
+                currentZ += GetDocumentZoneLength(layout[i], i)
+                    + Mathf.Max(0f, tuning.documentZoneGap);
+            }
+            return currentZ;
+        }
+
+        private void BuildDocumentMainRun(float tutorialEndZ)
+        {
+            MainRunZone[] layout = CreateDocumentMainRunLayout();
+            float currentZ = tutorialEndZ + Mathf.Max(0f, tuning.documentMainRunStartOffset);
+            for (int i = 0; i < layout.Length; i++)
+            {
+                BuildDocumentZone(layout[i], i, currentZ);
+                currentZ += GetDocumentZoneLength(layout[i], i)
+                    + Mathf.Max(0f, tuning.documentZoneGap);
+            }
+        }
+
+        private IEnumerator TemporaryBoostSequence(Encounter encounter)
+        {
+            GameObject pickup = encounter.root;
+            ElixirVisual visual = pickup != null ? pickup.GetComponent<ElixirVisual>() : null;
+            visual?.BeginConsume();
+            flashAlpha = Mathf.Max(flashAlpha, elixirPresentation.pickupFlash * 0.8f);
+            PunchCamera(0.13f, elixirPresentation.cameraShake * 0.8f, 0f);
+            visualTimeScale.RequestSlowMotion(elixirPresentation.slowMotionScale,
+                elixirPresentation.slowMotionDuration * 0.7f);
+
+            bool grantsInvulnerability = encounter.temporaryBoostGrantsInvulnerability;
+            if (grantsInvulnerability) smallPotionInvulnerabilityCount++;
+
+            float startSpeed = speedController.CurrentSpeed;
+            float boostedSpeed = Mathf.Min(speedController.Settings.maximumSpeed,
+                startSpeed + encounter.temporaryBoostAmount);
+            speedController.SetSpeed(boostedSpeed, SpeedChangeReason.PotionPickup, this);
+
+            float timer = 0f;
+            float holdDuration = Mathf.Max(0f, encounter.temporaryBoostHoldDuration);
+            while (timer < holdDuration)
+            {
+                timer += Time.unscaledDeltaTime;
+                if (speedController.CurrentSpeed < boostedSpeed)
+                    speedController.SetSpeed(boostedSpeed, SpeedChangeReason.PotionPickup, this);
+                yield return null;
+            }
+
+            timer = 0f;
+            float returnDuration = Mathf.Max(0.01f, encounter.temporaryBoostReturnDuration);
+            while (timer < returnDuration)
+            {
+                timer += Time.unscaledDeltaTime;
+                float t = Mathf.Clamp01(timer / returnDuration);
+                float targetSpeed = Mathf.Lerp(boostedSpeed, startSpeed, Mathf.SmoothStep(0f, 1f, t));
+                speedController.SetSpeed(targetSpeed, SpeedChangeReason.PotionPickup, this);
+                yield return null;
+            }
+
+            speedController.SetSpeed(startSpeed, SpeedChangeReason.PotionPickup, this);
+            if (grantsInvulnerability)
+                smallPotionInvulnerabilityCount = Mathf.Max(0, smallPotionInvulnerabilityCount - 1);
+            if (pickup != null) pickup.SetActive(false);
+        }
+
+        private void BuildDocumentZone(MainRunZone zone, int zoneIndex, float startZ)
+        {
+            float safeHalfWidth = Mathf.Max(0.5f, tuning.laneHalfWidth - 0.35f);
+            BuildDocumentLane(zone.left, zoneIndex, 0, startZ, safeHalfWidth);
+            BuildDocumentLane(zone.center, zoneIndex, 1, startZ, safeHalfWidth);
+            BuildDocumentLane(zone.right, zoneIndex, 2, startZ, safeHalfWidth);
+        }
+
+        private void BuildDocumentLane(MainRunLaneContent content, int zoneIndex,
+            int laneIndex, float startZ, float safeHalfWidth)
+        {
+            if (content == null || content.type == MainRunContentType.Empty) return;
+
+            float laneX = GetDocumentLaneX(laneIndex, safeHalfWidth);
+            string laneName = laneIndex == 0 ? "Left" : laneIndex == 1 ? "Center" : "Right";
+            string zoneName = "DocumentZone_" + (zoneIndex + 1) + "_" + laneName;
+            switch (content.type)
+            {
+                case MainRunContentType.Soldiers:
+                    CreateDocumentSoldierChain(laneX, startZ, content.count, zoneIndex, zoneName);
+                    break;
+                case MainRunContentType.StoneWall:
+                    CreateBreakableWall(startZ, zoneName + "_StoneWall",
+                        GetSingleLaneWallMode(laneIndex));
+                    break;
+                case MainRunContentType.Elite:
+                    CreateTarget(laneX, startZ,
+                        Mathf.Clamp(tuning.documentEliteLevel, 1, speedController.MaxLevel),
+                        null, zoneName + "_Elite", true);
+                    break;
+                case MainRunContentType.SmallPotion:
+                    CreateTemporaryBoostPickup(laneX, startZ, tuning.documentSmallPotionBoost,
+                        tuning.documentSmallPotionHold, tuning.documentSmallPotionReturn,
+                        prefab != null ? prefab.openingElixirCenterPrefab : null,
+                        zoneName + "_SmallPotion", true);
+                    break;
+                case MainRunContentType.LargePotion:
+                    CreateTemporaryBoostPickup(laneX, startZ, tuning.documentLargePotionBoost,
+                        tuning.documentLargePotionHold, tuning.documentLargePotionReturn,
+                        prefab != null ? prefab.bossMaxSpeedElixirPrefab : null,
+                        zoneName + "_LargePotion", false);
+                    break;
+            }
+        }
+
+        private float GetDocumentZoneLength(MainRunZone zone, int zoneIndex)
+        {
+            return Mathf.Max(
+                GetDocumentLaneLength(zone.left, zoneIndex),
+                Mathf.Max(GetDocumentLaneLength(zone.center, zoneIndex),
+                    GetDocumentLaneLength(zone.right, zoneIndex)));
+        }
+
+        private float GetDocumentLaneLength(MainRunLaneContent content, int zoneIndex)
+        {
+            if (content == null || content.type == MainRunContentType.Empty) return 0f;
+            if (content.type == MainRunContentType.Soldiers)
+            {
+                float spacing = GetDocumentSoldierSpacing(zoneIndex);
+                return content.count > 1
+                    ? (content.count - 1) * spacing
+                    : spacing;
+            }
+            return Mathf.Max(0.1f, tuning.documentSingleContentLength);
+        }
+
+        private float GetDocumentSoldierSpacing(int zoneIndex)
+        {
+            if (prefab != null && prefab.soldierSections != null
+                && prefab.soldierSections.Length > 0)
+            {
+                int templateIndex = zoneIndex < 6
+                    ? Mathf.Min(zoneIndex, prefab.soldierSections.Length - 1)
+                    : Mathf.Min(6, prefab.soldierSections.Length - 1);
+                SoldierFormationSettings template = prefab.soldierSections[templateIndex];
+                if (template != null) return GetSectionForwardSpacing(template);
+            }
+            return 0.5f;
+        }
+
+        private float GetDocumentLaneX(int laneIndex, float safeHalfWidth)
+        {
+            return GetSoldierLaneCenter(laneIndex == 0
+                ? SoldierPlacementMode.LeftLaneLine
+                : laneIndex == 1 ? SoldierPlacementMode.CenterLaneLine
+                : SoldierPlacementMode.RightLaneLine, safeHalfWidth);
+        }
+
+        private static StoneWallBlockingMode GetSingleLaneWallMode(int laneIndex)
+        {
+            return laneIndex == 0 ? StoneWallBlockingMode.LeftLaneOnly
+                : laneIndex == 2 ? StoneWallBlockingMode.RightLaneOnly
+                : StoneWallBlockingMode.CenterLaneOnly;
+        }
+
+        private void CreateDocumentSoldierChain(float laneX, float startZ, int count,
+            int zoneIndex, string zoneName)
+        {
+            int clampedCount = Mathf.Clamp(count, 1, 50);
+            float spacing = GetDocumentSoldierSpacing(zoneIndex);
+            for (int i = 0; i < clampedCount; i++)
+            {
+                CreateTarget(laneX, startZ + i * spacing, 1, null,
+                    zoneName + "_Soldier_" + (i + 1), i == 0);
+            }
         }
 
         // The main RandomDense setting counts rows and expands across lanes; this reward path
@@ -2503,6 +2937,12 @@ namespace PlayableAd
 
         private void BuildConfiguredMainRun(float tutorialEndZ)
         {
+            if (tuning != null && tuning.useDocumentMainRunLayout)
+            {
+                BuildDocumentMainRun(tutorialEndZ);
+                return;
+            }
+
             if (prefab != null && prefab.soldierSections != null)
             {
                 for (int i = 0; i < prefab.soldierSections.Length; i++)
@@ -2605,7 +3045,7 @@ namespace PlayableAd
             Renderer[] visibilityRenderers = placeholderRenderer != null
                 ? new[] { placeholderRenderer }
                 : Array.Empty<Renderer>();
-            GameObject visualPrefab = tier == 1 ? tier1SoldierPrefab : tier == 4 ? tier4SoldierPrefab : null;
+            GameObject visualPrefab = tier == 1 ? tier1SoldierPrefab : tier >= 4 ? tier4SoldierPrefab : null;
             if (visualPrefab != null)
             {
                 Transform visualRoot = new GameObject("VisualRoot").transform;
@@ -2637,7 +3077,7 @@ namespace PlayableAd
                     WarnTargetVisualFallback(tier, visualPrefab.name + " has no Renderer");
                 }
             }
-            else if (tier == 1 || tier == 4)
+            else if (tier == 1 || tier >= 4)
             {
                 WarnTargetVisualFallback(tier, tier == 1 ? nameof(tier1SoldierPrefab) : nameof(tier4SoldierPrefab));
             }
@@ -2645,9 +3085,10 @@ namespace PlayableAd
             EnemyVisibilityController visibility = root.AddComponent<EnemyVisibilityController>();
             SoldierKnockbackEffect soldierKnockback = root.AddComponent<SoldierKnockbackEffect>();
             soldierKnockback.Initialize(visibilityRenderers);
+            int displayLevel = tier >= 4 ? tier : SoldierDisplayLevel;
             NumberCombatTarget numberTarget = showLevelLabel
                 ? numberCombatSystem?.RegisterTarget(root.transform, visibilityRenderers,
-                    SoldierDisplayLevel, numberCombat.soldierHeadClearance, visibility)
+                    displayLevel, numberCombat.soldierHeadClearance, visibility)
                 : null;
             visibility.Initialize(visibilityRenderers, colliders);
             encounters.Add(new Encounter
@@ -2784,6 +3225,21 @@ namespace PlayableAd
             root.SetActive(false);
         }
 
+        private void CreateTemporaryBoostPickup(float x, float z, float boostAmount,
+            float holdDuration, float returnDuration, GameObject visualPrefab, string objectName,
+            bool grantsInvulnerability)
+        {
+            int encounterCountBeforeCreate = encounters.Count;
+            CreateElixir(x, z, 1, 0, visualPrefab, objectName);
+            if (encounters.Count <= encounterCountBeforeCreate) return;
+
+            Encounter encounter = encounters[encounterCountBeforeCreate];
+            encounter.temporaryBoostAmount = Mathf.Max(0f, boostAmount);
+            encounter.temporaryBoostHoldDuration = Mathf.Max(0f, holdDuration);
+            encounter.temporaryBoostReturnDuration = Mathf.Max(0.01f, returnDuration);
+            encounter.temporaryBoostGrantsInvulnerability = grantsInvulnerability;
+        }
+
         private Renderer[] CreateElixirVisual(GameObject root, GameObject visualPrefab, int targetLevel)
         {
             if (visualPrefab != null)
@@ -2903,6 +3359,20 @@ namespace PlayableAd
                 centerX = 0f;
                 halfWidth = roadHalfWidth;
                 widthScale = 1f;
+                return;
+            }
+
+            if (blockingMode == StoneWallBlockingMode.LeftLaneOnly
+                || blockingMode == StoneWallBlockingMode.RightLaneOnly
+                || blockingMode == StoneWallBlockingMode.CenterLaneOnly)
+            {
+                centerX = blockingMode == StoneWallBlockingMode.LeftLaneOnly
+                    ? -roadHalfWidth * 2f / 3f
+                    : blockingMode == StoneWallBlockingMode.RightLaneOnly
+                    ? roadHalfWidth * 2f / 3f
+                    : 0f;
+                halfWidth = roadHalfWidth / 3f;
+                widthScale = 1f / 3f;
                 return;
             }
 

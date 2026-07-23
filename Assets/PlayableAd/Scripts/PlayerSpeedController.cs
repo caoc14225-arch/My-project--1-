@@ -42,7 +42,7 @@ namespace PlayableAd
 
         [Header("P0 Rules（P0 规则）")]
         [Range(1, RequiredLevelCount), InspectorName("Starting Level（起始等级）")] public int startingLevel = 1;
-        [Range(1, RequiredLevelCount), InspectorName("Tutorial Elixir Target Level（教学药剂目标等级）")] public int tutorialElixirTargetLevel = 4;
+        [Range(1, RequiredLevelCount), InspectorName("Tutorial Elixir Target Level（教学药剂目标等级）")] public int tutorialElixirTargetLevel = 2;
         [InspectorName("Log Speed Changes（记录速度变化）")] public bool logSpeedChanges = false;
         [Min(0f), InspectorName("Level One Soldier Boost（一级士兵增益）")] public float levelOneSoldierBoost = 0.12f;
         [Min(0f), InspectorName("Normal Impact Boost（普通冲击增益）")] public float normalImpactBoost = 0.18f;

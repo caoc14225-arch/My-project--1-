@@ -70,17 +70,22 @@ namespace PlayableAd
 
         public ObstacleResolutionType Resolve(PlayerSpeedController speedController, float boostAmount)
         {
-            return ResolveInternal(speedController, boostAmount, null);
+            return ResolveInternal(speedController, boostAmount, null, false);
         }
 
         public ObstacleResolutionType Resolve(PlayerSpeedController speedController, float boostAmount,
             float speedLossAmount)
         {
-            return ResolveInternal(speedController, boostAmount, Mathf.Max(0f, speedLossAmount));
+            return ResolveInternal(speedController, boostAmount, Mathf.Max(0f, speedLossAmount), false);
+        }
+
+        public ObstacleResolutionType ResolveWithoutPenalty(PlayerSpeedController speedController, float boostAmount)
+        {
+            return ResolveInternal(speedController, boostAmount, null, true);
         }
 
         private ObstacleResolutionType ResolveInternal(PlayerSpeedController speedController, float boostAmount,
-            float? fixedSpeedLossAmount)
+            float? fixedSpeedLossAmount, bool suppressSpeedLoss)
         {
             if (hasResolved || speedController == null)
                 return ObstacleResolutionType.Equal;
@@ -103,15 +108,23 @@ namespace PlayableAd
             }
             else
             {
-                resolution = ObstacleResolutionType.Dropped;
-                if (fixedSpeedLossAmount.HasValue)
+                if (suppressSpeedLoss)
                 {
-                    speedController.SetSpeed(speedController.CurrentSpeed - fixedSpeedLossAmount.Value,
-                        SpeedChangeReason.HighLevelCollisionPenalty, this);
+                    outcome = CollisionOutcome.Neutral;
+                    resolution = ObstacleResolutionType.Equal;
                 }
                 else
                 {
-                    speedController.DropOneLevel(SpeedChangeReason.HighLevelCollisionPenalty, this);
+                    resolution = ObstacleResolutionType.Dropped;
+                    if (fixedSpeedLossAmount.HasValue)
+                    {
+                        speedController.SetSpeed(speedController.CurrentSpeed - fixedSpeedLossAmount.Value,
+                            SpeedChangeReason.HighLevelCollisionPenalty, this);
+                    }
+                    else
+                    {
+                        speedController.DropOneLevel(SpeedChangeReason.HighLevelCollisionPenalty, this);
+                    }
                 }
             }
 

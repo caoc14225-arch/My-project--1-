@@ -10443,6 +10443,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   tuning:
+    gameplayLevelConfigurationVersion: 5
     openingElixirTime: 1.230769
     tutorialSoldierCount: 5
     tutorialSoldierSpacing: 1.846154
@@ -10451,21 +10452,33 @@ MonoBehaviour:
     tutorialWallBlockingMode: 1
     tutorialWallBulletTime:
       enabled: 1
-      triggerDistance: 6
-      duration: 1.5
+      triggerDistance: 5
+      duration: 0.5
       worldTimeScale: 0.25
-      enterDuration: 0.2
-      exitDuration: 0.15
+      enterDuration: 0.1
+      exitDuration: 0.1
     tutorialExitSpeedLevel: 2
-    stoneWallSafeSpeedLevel: 7
+    stoneWallSafeSpeedLevel: 6
     stoneWallSpeedPenaltyLevels: 0.5
     forwardSpeedLossEnabled: 1
-    firstSectionSpeedLossPerSecond: 0.05
-    secondSectionSpeedLossPerSecond: 0.08
+    firstSectionSpeedLossPerSecond: 0
+    secondSectionSpeedLossPerSecond: 0
     thirdSectionSpeedLossPerSecond: 0
     minimumSpeedAfterLoss: 1
-    bossDistance: 500
+    bossDistance: 412.84616
     bossMaxSpeedElixirDistance: 30
+    useDocumentMainRunLayout: 1
+    documentMainRunStartOffset: 10
+    documentZoneGap: 5
+    documentSingleContentLength: 1
+    documentEliteLevel: 8
+    documentEliteSpeedPenalty: 0.5
+    documentSmallPotionBoost: 1
+    documentSmallPotionHold: 1
+    documentSmallPotionReturn: 3
+    documentLargePotionBoost: 2
+    documentLargePotionHold: 1
+    documentLargePotionReturn: 4
     bossApproachPadding: 13.46154
     proceduralSeed: 41723
     recycleDistance: 18
@@ -10490,45 +10503,45 @@ MonoBehaviour:
   prefab:
     soldierSections:
     - sectionName: 1
-      startOffsetFromTutorial: 4.02886
+      startOffsetFromTutorial: 10
       soldierCount: 5
       placementMode: 3
-      minimumForwardSpacing: 0.62625
+      minimumForwardSpacing: 1
       horizontalCoverage: 1
       forwardRandomness: 0.9
     - sectionName: 2
-      startOffsetFromTutorial: 12.371259
+      startOffsetFromTutorial: 16
       soldierCount: 5
       placementMode: 2
-      minimumForwardSpacing: 0.5
+      minimumForwardSpacing: 1
       horizontalCoverage: 1
       forwardRandomness: 0.8
     - sectionName: 3
-      startOffsetFromTutorial: 21.27115
+      startOffsetFromTutorial: 22
       soldierCount: 5
       placementMode: 1
-      minimumForwardSpacing: 0.5
+      minimumForwardSpacing: 1
       horizontalCoverage: 1
       forwardRandomness: 0.8
     - sectionName: 4
-      startOffsetFromTutorial: 29.847754
+      startOffsetFromTutorial: 28
       soldierCount: 5
       placementMode: 3
-      minimumForwardSpacing: 0.5
+      minimumForwardSpacing: 1
       horizontalCoverage: 1
       forwardRandomness: 0.8
     - sectionName: 5
-      startOffsetFromTutorial: 37.365128
-      soldierCount: 5
+      startOffsetFromTutorial: 34
+      soldierCount: 3
       placementMode: 2
-      minimumForwardSpacing: 0.5
+      minimumForwardSpacing: 1
       horizontalCoverage: 1
       forwardRandomness: 0.8
     - sectionName: 6
-      startOffsetFromTutorial: 45.81682
-      soldierCount: 5
+      startOffsetFromTutorial: 38
+      soldierCount: 1
       placementMode: 1
-      minimumForwardSpacing: 0.5
+      minimumForwardSpacing: 1
       horizontalCoverage: 1
       forwardRandomness: 0.8
     - sectionName: 7
@@ -10928,22 +10941,22 @@ MonoBehaviour:
     - 9
     - 9.5
     forwardSpeeds:
-    - 6
-    - 7
-    - 8.5
-    - 10
-    - 12
-    - 14
-    - 16.5
-    - 19
-    - 22
+    - 8
+    - 11
+    - 13.5
+    - 16
+    - 18
+    - 19.5
+    - 21
+    - 23
+    - 24.5
     - 26
     baseAcceleration: 22
     specialUpgradeAcceleration: 16
     naturalDeceleration: 14
     penaltyDeceleration: 32
     startingLevel: 1
-    tutorialElixirTargetLevel: 5
+    tutorialElixirTargetLevel: 2
     logSpeedChanges: 0
     levelOneSoldierBoost: 0.1
     normalImpactBoost: 0.08
@@ -11079,6 +11092,7 @@ MonoBehaviour:
     chunkSideSpeed: 6
     chunkLifetime: 0.9
     dustAmount: 16
+  tutorialBulletWarningArrow: {fileID: 2800000, guid: 69b1253416f71f64cba07fd24aef9515, type: 3}
   speedLevelFeedbackConfig: {fileID: 11400000, guid: abb605bf325454240a997ba6ac79f5f8, type: 2}
   bossClashPresentation:
     approachDuration: 0.5
@@ -11110,12 +11124,11 @@ MonoBehaviour:
     beamWidth: 0.28
     centerBrightness: 0.78
   bossTapHintSprite: {fileID: 21300000, guid: dc6073559c7248fb8a36a1848f1819d2, type: 3}
-  tutorialBulletWarningArrow: {fileID: 2800000, guid: 69b1253416f71f64cba07fd24aef9515, type: 3}
   endCardGameLogo: {fileID: 2800000, guid: 00b0d4e9cd7f28444b0c6c55900cbefc, type: 3}
   endCardVictoryLogo: {fileID: 2800000, guid: b96387e66b637114a9e207ba5d3b1975, type: 3}
   endCardPlayNowImage: {fileID: 2800000, guid: a2bdd2458453d084f9d08df8ce53fce0, type: 3}
   endCardTapHand: {fileID: 2800000, guid: 276f1153ed65550498d0f9e41fb274d4, type: 3}
-  endCardStoreUrl:
+  endCardStoreUrl: 
   audioPresentation:
     audioEnabled: 1
     hapticsEnabled: 1
